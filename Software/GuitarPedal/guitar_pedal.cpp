@@ -13,7 +13,7 @@ using namespace bkshepherd;
 // Uncomment the version you are trying to use, by default (and if nothing is
 // uncommented), the 125B with 2 footswitch variant will be used
 
-// #define VARIANT_125B
+#define VARIANT_125B
 // #define VARIANT_1590B
 // #define VARIANT_1590B_SMD
 // #define VARIANT_TERRARIUM
@@ -55,12 +55,21 @@ int prevActiveEffectID = 0;
 int tunerModuleIndex = -1;
 BaseEffectModule *activeEffect = nullptr;
 
+// [STEP4.5] Cached once per effect-load: does the active effect want switch 1
+// as a raw footswitch (RNBO effects) instead of the framework bypass toggle
+// (stock effects)? Set in SetActiveEffect() and at boot. Read in the switch
+// loop. false = switch 1 is bypass (stock default); true = switch 1 is raw fsw1.
+bool activeEffectUsesRawFsw1 = false;
+
 // UI Related Variables
 GuitarPedalUI guitarPedalUI;
 
 // Hardware Related Variables
 bool useDebugDisplay = false;
-bool effectOn = false;
+// [STEP1] Always-process fork: effect is ON from boot so RNBO never gets
+// starved of samples. Original line kept below, commented, so you can revert.
+// bool effectOn = false;
+bool effectOn = true;
 
 bool muteOn = false;
 float muteOffTransitionTimeInSeconds = 0.02f;
@@ -77,6 +86,15 @@ float secondsSinceStartup = 0.0f;
 
 bool needToSaveSettingsForActiveEffect = false;
 uint32_t last_save_time; // Time we last set it
+
+// [STEP5] Public setter so the preset menu's "Save Preset" item can request a
+// save without touching the global flag directly. The existing handler in the
+// main loop (see "needToSaveSettingsForActiveEffect" below) does the actual
+// save into the active effect's current preset slot, throttled, with the
+// on-screen "saving" confirmation. Declared in guitar_pedal.h for the UI file.
+void RequestSaveActiveEffectSettings() {
+    needToSaveSettingsForActiveEffect = true;
+}
 
 // Used to debounce quick switching to/from the tuner
 bool ignoreBypassSwitchUntilNextActuation = false;
@@ -207,69 +225,81 @@ static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer
     if (has_alternate_footswitch) {
         // Handle the scenario where have 2 footswitches
 
-        // If both footswitches are down, save the parameters for this effect to
-        // persistant storage If there is only one footswitch, it will do
-        // parameter saving here when held instead of tuner quick switching later
-        if (hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass)].TimeHeldMs() > 2000 &&
-            hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)].TimeHeldMs() >
-                2000 &&
-            !guitarPedalUI.IsShowingSavingSettingsScreen() && !ignoreBypassSwitchUntilNextActuation) {
+        // [STEP2] Both-held-2s "save settings" gesture is being retired — saving
+        // moves to an encoder menu item (step 5). Commented out as a unit so the
+        // braces stay balanced and you can revert. Original block below:
+        //
+        // // If both footswitches are down, save the parameters for this effect to
+        // // persistant storage If there is only one footswitch, it will do
+        // // parameter saving here when held instead of tuner quick switching later
+        // if (hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass)].TimeHeldMs() > 2000 &&
+        //     hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)].TimeHeldMs() >
+        //         2000 &&
+        //     !guitarPedalUI.IsShowingSavingSettingsScreen() && !ignoreBypassSwitchUntilNextActuation) {
+        //
+        //     needToSaveSettingsForActiveEffect = true;
+        //     ignoreBypassSwitchUntilNextActuation = true;
+        // }
 
-            needToSaveSettingsForActiveEffect = true;
-            ignoreBypassSwitchUntilNextActuation = true;
-        }
+        // [STEP2] Hold-2s "tuner quick-switch / cycle effect" gesture is retired.
+        // Effect selection stays in the menu; no tuner. Commented as a unit
+        // (braces balanced) so you can revert. Original block below:
+        //
+        // // If bypass is held for 2 seconds and alternate footswitch is not
+        // // pressed (not trying to save) then perform an action
+        // if (hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass)].TimeHeldMs() > 2000 &&
+        //     !hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)].Pressed() &&
+        //     !ignoreBypassSwitchUntilNextActuation) {
+        //
+        //     // If we have a screen and there is a tuner module, we quick switch
+        //     // to it, otherwise we just cycle through the effects.
+        //     // The actual switch is deferred to the main loop (it isn't safe
+        //     // from this interrupt); SetActiveEffect syncs the new effect's
+        //     // enabled state with effectOn when the switch is applied.
+        //     if (hardware.SupportsDisplay() && tunerModuleIndex >= 0) {
+        //         // Start the quick switch to the tuner
+        //         if (activeEffectID == tunerModuleIndex) {
+        //             // Set back the active effect before the quick switch
+        //             pendingEffectIDFromAudioCallback = prevActiveEffectID;
+        //
+        //             // Restore the effect state from when we quick switched, this is an
+        //             // inverse because the act of holding the switch caused the state to
+        //             // chnage due to the rising edge being detected
+        //             effectOn = !effectActiveBeforeQuickSwitch;
+        //         } else {
+        //             // Store if effect is on or not when quick switching
+        //             effectActiveBeforeQuickSwitch = effectOn;
+        //
+        //             // Switch to tuner and force it to be enabled
+        //             pendingEffectIDFromAudioCallback = tunerModuleIndex;
+        //             effectOn = true;
+        //         }
+        //         ignoreBypassSwitchUntilNextActuation = true;
+        //     } else {
+        //         // Cycle to the next effect
+        //         int newActiveEffectId = activeEffectID + 1;
+        //
+        //         // Skip over the tuner if there is no screen
+        //         if (newActiveEffectId == tunerModuleIndex) {
+        //             newActiveEffectId++;
+        //         }
+        //
+        //         if (newActiveEffectId > availableEffectsCount - 1) {
+        //             newActiveEffectId = 0;
+        //         }
+        //
+        //         pendingEffectIDFromAudioCallback = newActiveEffectId;
+        //
+        //         effectOn = false;
+        //
+        //         ignoreBypassSwitchUntilNextActuation = true;
+        //     }
+        // }
 
-        // If bypass is held for 2 seconds and alternate footswitch is not
-        // pressed (not trying to save) then perform an action
-        if (hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass)].TimeHeldMs() > 2000 &&
-            !hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)].Pressed() &&
-            !ignoreBypassSwitchUntilNextActuation) {
-
-            // If we have a screen and there is a tuner module, we quick switch
-            // to it, otherwise we just cycle through the effects.
-            // The actual switch is deferred to the main loop (it isn't safe
-            // from this interrupt); SetActiveEffect syncs the new effect's
-            // enabled state with effectOn when the switch is applied.
-            if (hardware.SupportsDisplay() && tunerModuleIndex >= 0) {
-                // Start the quick switch to the tuner
-                if (activeEffectID == tunerModuleIndex) {
-                    // Set back the active effect before the quick switch
-                    pendingEffectIDFromAudioCallback = prevActiveEffectID;
-
-                    // Restore the effect state from when we quick switched, this is an
-                    // inverse because the act of holding the switch caused the state to
-                    // chnage due to the rising edge being detected
-                    effectOn = !effectActiveBeforeQuickSwitch;
-                } else {
-                    // Store if effect is on or not when quick switching
-                    effectActiveBeforeQuickSwitch = effectOn;
-
-                    // Switch to tuner and force it to be enabled
-                    pendingEffectIDFromAudioCallback = tunerModuleIndex;
-                    effectOn = true;
-                }
-                ignoreBypassSwitchUntilNextActuation = true;
-            } else {
-                // Cycle to the next effect
-                int newActiveEffectId = activeEffectID + 1;
-
-                // Skip over the tuner if there is no screen
-                if (newActiveEffectId == tunerModuleIndex) {
-                    newActiveEffectId++;
-                }
-
-                if (newActiveEffectId > availableEffectsCount - 1) {
-                    newActiveEffectId = 0;
-                }
-
-                pendingEffectIDFromAudioCallback = newActiveEffectId;
-
-                effectOn = false;
-
-                ignoreBypassSwitchUntilNextActuation = true;
-            }
-        }
-
+        // [STEP2] This release-reset is left LIVE on purpose. With the gestures
+        // above commented out, ignoreBypassSwitchUntilNextActuation is never set
+        // true anymore, so this block simply keeps it false. Harmless; kept so
+        // the variable stays defined and the diff stays small.
         // Disable quick switching until the footswitch is released to prevent infinite switching
         // also prevents saving from toggling quick switch.
         if (ignoreBypassSwitchUntilNextActuation &&
@@ -277,23 +307,50 @@ static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer
             ignoreBypassSwitchUntilNextActuation = false;
         }
     } else {
-        // Handle the scenario where we only have 1 footswitch
-        if (hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass)].TimeHeldMs() > 2000 &&
-            !guitarPedalUI.IsShowingSavingSettingsScreen()) {
-            needToSaveSettingsForActiveEffect = true;
-        }
+        // [STEP2] 1-footswitch hold-2s save gesture retired (saving moves to the
+        // encoder menu, step 5). Commented as a unit; the else-branch stays so the
+        // if/else braces balance. Original block below:
+        //
+        // // Handle the scenario where we only have 1 footswitch
+        // if (hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass)].TimeHeldMs() > 2000 &&
+        //     !guitarPedalUI.IsShowingSavingSettingsScreen()) {
+        //     needToSaveSettingsForActiveEffect = true;
+        // }
     }
 
     // Process the switches
     for (int i = 0; i < hardware.GetSwitchCount(); i++) {
-        bool switchPressed = hardware.switches[i].RisingEdge();
+        // [STEP6] L/R SWAP (whole switch loop): the board's silkscreen labels
+        // fsw1/led1 on the physical RIGHT, which is counter-intuitive. We keep
+        // the LOGICAL index i (so switch roles, caches and fsw ids stay
+        // consistent) but read the PHYSICAL switch from the opposite side.
+        // So logical switch 0 (bypass / fsw1) is driven by the physical LEFT
+        // switch, for BOTH stock and RNBO effects. LEDs are swapped to match
+        // further below.
+        const int phys = (hardware.GetSwitchCount() - 1) - i;
+        bool switchPressed = hardware.switches[phys].RisingEdge();
 
-        // If this is the bypass switch, check for a bypass transition already
-        // in progress (isCrossFading), and toggle the effect if the switch is
-        // pressed
-        if (!ignoreBypassSwitchUntilNextActuation && !isCrossFading &&
-            i == hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass) && switchPressed) {
-            effectOn = !effectOn;
+        // [STEP3] Push raw momentary switch state into the active effect every
+        // update. RNBO wrapper modules forward this into fsw1/fsw2 params; all
+        // other effects ignore it (empty base default).
+        if (activeEffect != nullptr) {
+            activeEffect->SetFootswitch(i, hardware.switches[phys].Pressed() ? 1.0f : 0.0f);
+        }
+
+        // [STEP4.5] Switch 1 behavior now depends on the active effect:
+        //  - RNBO effect (activeEffectUsesRawFsw1 == true): NO bypass toggle;
+        //    switch 1 goes raw into fsw1 via the SetFootswitch push above.
+        //  - Stock effect (false): restore the original bypass toggle so
+        //    cloudseed/pitch_shifter etc. can be bypassed (crossfade-to-dry).
+        // This reactivates the step-1 block, but only for stock effects.
+        if (!activeEffectUsesRawFsw1) {
+            // If this is the bypass switch, check for a bypass transition already
+            // in progress (isCrossFading), and toggle the effect if the switch is
+            // pressed
+            if (!ignoreBypassSwitchUntilNextActuation && !isCrossFading &&
+                i == hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Bypass) && switchPressed) {
+                effectOn = !effectOn;
+            }
         }
 
         if (effectOn && switchPressed && i == hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)) {
@@ -301,7 +358,7 @@ static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer
             needToRefreshMenuParameterValues = true;
         }
 
-        bool switchReleased = hardware.switches[i].FallingEdge();
+        bool switchReleased = hardware.switches[phys].FallingEdge();
         if (switchReleased && i == hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)) {
             alternateHeldFor1SecondTriggered = false;
         }
@@ -310,7 +367,7 @@ static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer
             needToRefreshMenuParameterValues = true;
         }
 
-        bool switchHeld = hardware.switches[i].TimeHeldMs() >= 1000.f;
+        bool switchHeld = hardware.switches[phys].TimeHeldMs() >= 1000.f;
         if (effectOn && switchHeld && !alternateHeldFor1SecondTriggered &&
             i == hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)) {
             alternateHeldFor1SecondTriggered = true;
@@ -476,8 +533,10 @@ static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer
     }
 
     // Handle LEDs
-    hardware.SetLed(0, led1Brightness);
-    hardware.SetLed(1, led2Brightness);
+    // [STEP6] L/R SWAP: led1 drives the physical LEFT LED, led2 the right, to
+    // match the swapped switches (board silkscreen has led1 on the right).
+    hardware.SetLed(1, led1Brightness);
+    hardware.SetLed(0, led2Brightness);
     hardware.UpdateLeds();
 
     cpuLoadMeter.OnBlockEnd();
@@ -493,6 +552,18 @@ void SetActiveEffect(int effectID) {
 
         // Update the Active Effect directly.
         activeEffect = availableEffects[effectID];
+
+        // [STEP4.5] Cache whether this effect wants switch 1 as a raw footswitch
+        // (RNBO) or the framework bypass (stock). Read once here, at load.
+        activeEffectUsesRawFsw1 = activeEffect->UsesRawFootswitch1();
+
+        // [STEP4.5] An always-process (raw-fsw1) effect must never be left in a
+        // bypassed state. If we just switched to one from a stock effect that
+        // was bypassed (effectOn == false), force it back on so audio flows and
+        // RNBO isn't starved. Stock effects keep whatever effectOn was.
+        if (activeEffectUsesRawFsw1) {
+            effectOn = true;
+        }
 
         // Keep the new effect's enabled state in sync with the global bypass
         // state (previously only the footswitch paths did this, leaving menu
@@ -635,7 +706,22 @@ int main(void) {
     // Set the active effect
     activeEffect = availableEffects[settings.globalActiveEffectID];
     activeEffectID = settings.globalActiveEffectID;
-    effectOn = settings.globalEffectOn;
+
+    // [STEP4.5] Cache the boot effect's switch-1 preference (same as
+    // SetActiveEffect does for later switches).
+    activeEffectUsesRawFsw1 = activeEffect->UsesRawFootswitch1();
+
+    // [STEP1/4.5] Boot on/off state:
+    //  - raw-fsw1 (RNBO) effect: force ON so RNBO always processes.
+    //  - stock effect: restore the saved on/off state (original behavior), so a
+    //    stock effect can boot bypassed if that's how it was saved.
+    // Original step-1 line (unconditional effectOn = true) shown for reference:
+    // effectOn = true;
+    if (activeEffectUsesRawFsw1) {
+        effectOn = true;
+    } else {
+        effectOn = settings.globalEffectOn;
+    }
     activeEffect->SetEnabled(effectOn);
 
     // LoadEffectSettingsFromPersistantStorage() above loads every effect's own
@@ -761,8 +847,10 @@ int main(void) {
         }
 
         // If alt footswitch held AND encoder turned, iterate to next/previous effect, also throttle the changes
+        // [STEP6] L/R SWAP: read the swapped physical position of the alternate
+        // switch, to stay consistent with the swapped switch loop above.
         if (hardware.SupportsEncoder() && has_alternate_footswitch &&
-            hardware.switches[hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)].Pressed() &&
+            hardware.switches[(hardware.GetSwitchCount() - 1) - hardware.GetPreferredSwitchIDForSpecialFunctionType(SpecialFunctionType::Alternate)].Pressed() &&
             System::GetNow() - last_effect_change_time >= 10) {
             const int encoderIncrement = hardware.encoders[0].Increment();
             if (encoderIncrement != 0) {

@@ -8,29 +8,29 @@
 #include "Effect-Modules/base_effect_module.h"
 
 // Include all effect modules
-#include "Effect-Modules/autopan_module.h"
+//#include "Effect-Modules/autopan_module.h"
 #include "Effect-Modules/chopper_module.h"
 #include "Effect-Modules/chorus_module.h"
 #include "Effect-Modules/cloudseed_module.h" // Takes up significant SDRAM (about 30%)
-#include "Effect-Modules/compressor_module.h"
-#include "Effect-Modules/crusher_module.h"
+//#include "Effect-Modules/compressor_module.h"
+//#include "Effect-Modules/crusher_module.h"
 #include "Effect-Modules/delay_module.h"
-#include "Effect-Modules/distortion_module.h"
-#include "Effect-Modules/drum_module.h"
-#include "Effect-Modules/effect_chain.h" // Some caution required - See README and examples below for usage
+//#include "Effect-Modules/distortion_module.h"
+//#include "Effect-Modules/drum_module.h"
+//#include "Effect-Modules/effect_chain.h" // Some caution required - See README and examples below for usage
 #include "Effect-Modules/flanger_module.h"
 #include "Effect-Modules/geq_module.h"
 #include "Effect-Modules/granulardelay_module.h"
 #include "Effect-Modules/harmonic_tremolo_module.h"
-#include "Effect-Modules/ir_module.h"
-#include "Effect-Modules/looper_module.h"
-#include "Effect-Modules/metro_module.h"
+//#include "Effect-Modules/ir_module.h"
+//#include "Effect-Modules/looper_module.h"
+//#include "Effect-Modules/metro_module.h"
 #include "Effect-Modules/modulated_tremolo_module.h"
-#include "Effect-Modules/multi_delay_module.h"
-#include "Effect-Modules/nam_a2_module.h"
-#include "Effect-Modules/noise_gate_module.h"
-#include "Effect-Modules/overdrive_module.h"
-#include "Effect-Modules/peq_module.h"
+//#include "Effect-Modules/multi_delay_module.h"
+//#include "Effect-Modules/nam_a2_module.h"
+//#include "Effect-Modules/noise_gate_module.h"
+//#include "Effect-Modules/overdrive_module.h"
+//#include "Effect-Modules/peq_module.h"
 #include "Effect-Modules/phaser_module.h"
 #include "Effect-Modules/pitch_shifter_module.h"
 #include "Effect-Modules/polyoctave_module.h"
@@ -51,6 +51,7 @@
 // Effect-Modules/Dattorro/README.md and the matching block in the Makefile
 // before uncommenting.
 // #include "Effect-Modules/dattorro_reverb_module.h"
+#include "Effect-Modules/freezeverb_module.h"
 
 namespace bkshepherd {
 
@@ -58,35 +59,36 @@ void load_effects(int &availableEffectsCount, BaseEffectModule **&availableEffec
     // clang-format off
     static BaseEffectModule* effectList[] = {
         new ModulatedTremoloModule(),
-        new OverdriveModule(),
-        new AutoPanModule(),
+        //new OverdriveModule(),
+        //new AutoPanModule(),
         new ChorusModule(),
         new ChopperModule(),
         new ReverbModule(), // single-instance only
-        new MultiDelayModule(),  // single-instance-only
-        new MetroModule(),
+        //new MultiDelayModule(),  // single-instance-only
+        //new MetroModule(),
         new TunerModule(), // single-instance only
         new PitchShifterModule(),  // single-instance-only
-        new CompressorModule(),
-        new LooperModule(),  // single-instance-only
-        new GraphicEQModule(),
-        new ParametricEQModule(),
-        new NoiseGateModule(),
+        //new CompressorModule(),
+        //new LooperModule(),  // single-instance-only
+        //new GraphicEQModule(),
+        //new ParametricEQModule(),
+        //new NoiseGateModule(),
         new CloudSeedModule(), // single-instance only
         new DelayModule(), // single-instance only
         new TapeDelayModule(),  // single-instance-only
-        new NamA2Module(),  // single-instance-only
+        //new NamA2Module(),  // single-instance-only
         new SciFiModule(),  // single-instance-only
         new PolyOctaveModule(),
         new SpectralDelayModule(),  // single-instance-only
-        new DistortionModule(),
+        //new DistortionModule(),
         new GranularDelayModule(),  // single-instance-only
-        new IrModule(),
-        new DrumModule(),  // This module can be used with MIDI keyboard as a drum machine
+        //new IrModule(),
+        //new DrumModule(),  // This module can be used with MIDI keyboard as a drum machine
         new PhaserModule(),
         new FlangerModule(),
-        new CrusherModule(),
+        //new CrusherModule(),
         new HarmonicTremoloModule(),
+        new FreezeVerbModule(),
 
         // The following require a MIDI keyboard
         // new MidiKeysModule(),

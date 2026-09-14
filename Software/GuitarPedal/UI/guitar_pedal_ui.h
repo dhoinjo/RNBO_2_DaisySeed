@@ -9,7 +9,7 @@ using namespace daisy;
 
 const int kNumMainMenuItems = 3;
 const int kNumGlobalSettingsMenuItems = 8;
-const int kNumPresetSettingsItems = 3;
+const int kNumPresetSettingsItems = 4; // [STEP5] was 3; +1 for "Save Preset"
 
 namespace bkshepherd {
 

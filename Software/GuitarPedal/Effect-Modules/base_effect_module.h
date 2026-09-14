@@ -314,6 +314,21 @@ class BaseEffectModule {
     /** Overridable callback when alternate footswitch is held for 1 second */
     virtual void AlternateFootswitchHeldFor1Second(){};
 
+    // [STEP3] Push raw footswitch state into an effect. Base default does
+    // NOTHING, so every existing (non-RNBO) effect is unaffected — they keep
+    // using the AlternateFootswitch* callbacks above. RNBO wrapper modules
+    // override this to forward the raw 0/1 into their discovered fsw1/fsw2
+    // params. fsw_id: 0 = switch 1, 1 = switch 2. value: 0.0 up, 1.0 pressed.
+    virtual void SetFootswitch(int fsw_id, float value){};
+
+    // [STEP4.5] Does this effect want switch 1 as a RAW footswitch (fed into
+    // the effect via SetFootswitch), instead of the framework's bypass toggle?
+    // Default false = switch 1 is the normal bypass (stock effects). RNBO
+    // wrapper modules override this to return true, so switch 1 goes raw into
+    // fsw1 and the framework does NOT toggle bypass for them. Read once when an
+    // effect becomes active (see SetActiveEffect), not per sample.
+    virtual bool UsesRawFootswitch1() const { return false; };
+
     void SetCPUUsage(float cpuUsage) { m_cpuUsage = cpuUsage; };
     float GetCPUUsage() const { return m_cpuUsage; }
 

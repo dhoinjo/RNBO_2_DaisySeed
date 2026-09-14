@@ -31,6 +31,16 @@ void HandleResetActiveEffectParametersToDefaults(void *context) {
     ((GuitarPedalUI *)context)->ResetActiveEffectParametersToDefaults();
 }
 
+// [STEP5] "Save Preset" menu callback. RequestSaveActiveEffectSettings() lives
+// in guitar_pedal.cpp (approach b); we declare it extern here to call across
+// translation units. It sets the save-request flag; the main loop performs the
+// throttled save into the active effect's current preset slot and shows the
+// on-screen confirmation. No context needed.
+extern void RequestSaveActiveEffectSettings();
+void HandleSaveActiveEffectPreset(void * /*context*/) {
+    RequestSaveActiveEffectSettings();
+}
+
 // Default Constructor
 GuitarPedalUI::GuitarPedalUI()
     : m_needToCloseActiveEffectSettingsMenu(false), m_paramIdToReturnTo(-1), m_numActiveEffectSettingsItems(0),
@@ -391,13 +401,20 @@ void GuitarPedalUI::InitGlobalSettingsUIPages() {
     m_presetsMenuItems[0].text = "Preset #";
     m_presetsMenuItems[0].asMappedValueItem.valueToModify = &m_activePresetSettingIntValue;
 
+    // [STEP5] "Save Preset" — saves the active effect's current params into the
+    // selected preset slot. Replaces the removed footswitch save gesture.
     m_presetsMenuItems[1].type = AbstractMenu::ItemType::callbackFunctionItem;
-    m_presetsMenuItems[1].text = "Erase All";
-    m_presetsMenuItems[1].asCallbackFunctionItem.callbackFunction = &FactoryReset;
+    m_presetsMenuItems[1].text = "Save Preset";
+    m_presetsMenuItems[1].asCallbackFunctionItem.callbackFunction = &HandleSaveActiveEffectPreset;
     m_presetsMenuItems[1].asCallbackFunctionItem.context = this;
 
-    m_presetsMenuItems[2].type = AbstractMenu::ItemType::closeMenuItem;
-    m_presetsMenuItems[2].text = "Back";
+    m_presetsMenuItems[2].type = AbstractMenu::ItemType::callbackFunctionItem;
+    m_presetsMenuItems[2].text = "Erase All";
+    m_presetsMenuItems[2].asCallbackFunctionItem.callbackFunction = &FactoryReset;
+    m_presetsMenuItems[2].asCallbackFunctionItem.context = this;
+
+    m_presetsMenuItems[3].type = AbstractMenu::ItemType::closeMenuItem;
+    m_presetsMenuItems[3].text = "Back";
 
     m_presetsMenu.Init(m_presetsMenuItems, kNumPresetSettingsItems);
 
