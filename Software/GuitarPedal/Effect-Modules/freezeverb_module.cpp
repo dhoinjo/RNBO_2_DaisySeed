@@ -23,27 +23,31 @@ struct FreezeVerbModule::Impl {
 
 // Exact RNBO param names, in Param-enum slot order.
 static const char *s_paramNames[FreezeVerbModule::PARAM_COUNT] = {
-    "reverb_time",
-    "amount",
-    "lp"
+    "decay",
+    "reverb_amt",
+    "lp",
+    "chorus_amt",
+    "flutter_spd",
+    "degradation_amt",
+    "degradation_spd"
 };
 
 // kshep parameter metadata, same slot order. Labels from RNBO names; defaults
 // from description.json initialValue; no MIDI CC yet (-1).
 static const ParameterMetaData s_metaData[FreezeVerbModule::PARAM_COUNT] = {
     {
-        name : "reverb time",
+        name : "decay",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
-        defaultValue : {.float_value = 0.0f},
+        defaultValue : {.float_value = 0.7f},
         knobMapping : 0,
         midiCCMapping : -1
     },
     {
-        name : "amount",
+        name : "reverb amt",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
-        defaultValue : {.float_value = 0.0f},
+        defaultValue : {.float_value = 0.5f},
         knobMapping : 1,
         midiCCMapping : -1
     },
@@ -51,8 +55,40 @@ static const ParameterMetaData s_metaData[FreezeVerbModule::PARAM_COUNT] = {
         name : "lp",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
-        defaultValue : {.float_value = 0.0f},
+        defaultValue : {.float_value = 0.7f},
         knobMapping : 2,
+        midiCCMapping : -1
+    },
+    {
+        name : "chorus amt",
+        valueType : ParameterValueType::Float,
+        valueBinCount : 0,
+        defaultValue : {.float_value = 1.0f},
+        knobMapping : 3,
+        midiCCMapping : -1
+    },
+    {
+        name : "flutter spd",
+        valueType : ParameterValueType::Float,
+        valueBinCount : 0,
+        defaultValue : {.float_value = 1.0f},
+        knobMapping : 4,
+        midiCCMapping : -1
+    },
+    {
+        name : "degradation amt",
+        valueType : ParameterValueType::Float,
+        valueBinCount : 0,
+        defaultValue : {.float_value = 0.02f},
+        knobMapping : 5,
+        midiCCMapping : -1
+    },
+    {
+        name : "degradation spd",
+        valueType : ParameterValueType::Float,
+        valueBinCount : 0,
+        defaultValue : {.float_value = 0.01f},
+        knobMapping : -1,
         midiCCMapping : -1
     }
 };

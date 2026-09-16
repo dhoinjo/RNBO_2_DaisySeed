@@ -27,9 +27,13 @@ class FreezeVerbModule : public BaseEffectModule {
     // kshep-side param SLOTS (not RNBO indices). RNBO index for each is
     // discovered by name at Init(). Order matches s_metaData + s_paramNames.
     enum Param {
-        REVERB_TIME = 0,
-        AMOUNT = 1,
+        DECAY = 0,
+        REVERB_AMT = 1,
         LP = 2,
+        CHORUS_AMT = 3,
+        FLUTTER_SPD = 4,
+        DEGRADATION_AMT = 5,
+        DEGRADATION_SPD = 6,
         PARAM_COUNT
     };
 
