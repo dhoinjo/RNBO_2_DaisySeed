@@ -39,6 +39,7 @@ After a successful --apply:
 import sys
 import os
 import json
+import math
 import shutil
 
 # ===========================================================================
@@ -214,13 +215,22 @@ def gen_cpp(class_name, snake, module_class, non_reserved):
     for p in non_reserved:
         label = clean_label(p["name"])
         default = float(p.get("initialValue", 0.0))
+        # All params are Float. min/max come from the RNBO range: floor the min,
+        # ceil the max, so the pedal shows the real range and kshep scales the
+        # knob (0..1) into [min, max] before it reaches RNBO. kshep's min/max are
+        # int fields, so a fractional bound (e.g. 0.25) is floored/ceiled -- clamp
+        # the exact floor inside the patch if it matters (e.g. base_pitch 0.25).
+        vmin = int(math.floor(float(p.get("minimum", 0))))
+        vmax = int(math.ceil(float(p.get("maximum", 1))))
         meta_rows.append(f"""    {{
         name : "{label}",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
         defaultValue : {{.float_value = {default}f}},
         knobMapping : {p['knobMapping']},
-        midiCCMapping : -1
+        midiCCMapping : -1,
+        minValue : {vmin},
+        maxValue : {vmax}
     }}""")
     meta_block = ",\n".join(meta_rows)
 
