@@ -1,0 +1,38 @@
+# gitignore_v1  (install as: .gitignore in the GuitarPedal folder)
+# RNBO_2_DaisySeed -- keep the tooling public, keep work-in-progress effects private.
+
+# --- build output (one folder per pedal) ---
+build/
+build_*/
+
+# --- your RNBO exports and pedal lists (personal) ---
+RNBO_exports/
+pedals/
+
+# --- RNBO runtime: Cycling '74 code under their own license.
+#     make_effect.py installs it from each user's own export. ---
+dependencies/RNBO/common/
+dependencies/RNBO/.rnbo_version
+
+# --- exported effects: everything except the freezeverb example ---
+dependencies/RNBO/*.cpp.h
+!dependencies/RNBO/freezeverb.cpp.h
+
+# --- generated wrappers of work-in-progress effects ---
+# Add a line here for every new effect you don't want to publish
+# (check `git status` before every commit).
+Effect-Modules/sympath_module.*
+Effect-Modules/graincloud_module.*
+Effect-Modules/centroid_res_module.*
+Effect-Modules/tribonacci_module.*
+Effect-Modules/phrase_shuffle_module.*
+Effect-Modules/scrub_module.*
+Effect-Modules/spectralscrub_module.*
+Effect-Modules/tension_relief_module.*
+Effect-Modules/tens_rel_module.*
+Effect-Modules/chord_shadow_module.*
+Effect-Modules/chordshadow_module.*
+Effect-Modules/evolver_module.*
+
+# --- macOS ---
+.DS_Store

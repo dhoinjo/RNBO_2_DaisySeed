@@ -1,23 +1,29 @@
-// rnbo_allocator_v2.cpp
+// rnbo_allocator_v3.cpp
 // ---------------------------------------------------------------------------
 // Custom memory allocator for RNBO, backed by a large static pool in the
-// Daisy's 64MB SDRAM.  (v2)
+// Daisy's 64MB SDRAM, plus (v3) an optional small FAST pool in internal SRAM.
 //
-// WHAT CHANGED FROM v1 AND WHY:
-// v1's realloc() was broken. It did:  memcpy(newp, ptr, size)  where `size` is
-// the NEW (usually larger) size -- but the OLD block was smaller, so the copy
-// read PAST the end of the old block and pulled garbage into the resized
-// buffer. Any RNBO storage that is grown via realloc (its internal `list`
-// objects -- e.g. the FFT twiddle tables built by push() -- and buffer~ /
-// DataRef storage) ended up corrupt on-device, while desktop RNBO (real libc
-// realloc, which knows the block size) was fine. Symptom: scrambled audio even
-// for a bare FFT round-trip or a plain windowed overlap-add through buffer~.
+// WHAT CHANGED FROM v2 AND WHY:
+// SDRAM is slow for data that is touched every sample (delay lines, filter
+// state). v3 adds a second pool in the free part of the main internal SRAM
+// (AXI-SRAM, where the program code lives). Every allocation tries the fast
+// pool first and falls back to the SDRAM pool when the fast one is full.
 //
-// THE FIX: a bump allocator can't know an old block's size for free, so every
-// allocation now carries an 8-byte header storing its usable size. realloc()
-// reads that header and copies min(oldSize, newSize) -- never over-reading.
+// The fast pool size is set PER PEDAL in its profile (pedals/<colour>.mk):
+//     FAST_POOL_KB = 128
+// The Makefile turns that into -DRNBO_FAST_POOL_KB=128. Not set (or 0) means
+// no fast pool: behaviour is exactly v2.
 //
-// Everything else is unchanged: allocate-once usage, free() is a no-op.
+// The pool lives in the linker section .sram_axi_bss, which rnbo_fast_pool.lds
+// places in SRAM right after the program. It takes room from the same 480 KB
+// as the effects' code; if it doesn't fit, the build stops with
+// "region `SRAM' overflowed".
+//
+// First come, first served: effects allocate at boot in effect-list order, so
+// the first effect(s) in the list get the fast memory.
+//
+// Unchanged from v2: 8-byte size header per block (so realloc copies
+// min(old,new)), free() is a no-op, realloc abandons the old block.
 // ---------------------------------------------------------------------------
 
 #include <stddef.h>
@@ -25,8 +31,14 @@
 #include <string.h>
 #include "daisy_seed.h"   // for DSY_SDRAM_BSS
 
-// 16 MB pool in SDRAM.
-#define RNBO_POOL_BYTES (16 * 1024 * 1024)
+// 48 MB pool in SDRAM.
+#define RNBO_POOL_BYTES (48 * 1024 * 1024)
+
+// Fast pool size in KB, set per pedal by the Makefile (FAST_POOL_KB).
+#ifndef RNBO_FAST_POOL_KB
+#define RNBO_FAST_POOL_KB 0
+#endif
+#define RNBO_FAST_POOL_BYTES ((size_t)RNBO_FAST_POOL_KB * 1024u)
 
 // Bytes reserved before each returned block to store its usable size.
 // 8 (not sizeof(size_t)=4 on this M7) so the returned pointer stays 8-byte
@@ -36,25 +48,47 @@
 static char DSY_SDRAM_BSS s_rnboPool[RNBO_POOL_BYTES];
 static size_t s_rnboOffset = 0;
 
+#if RNBO_FAST_POOL_KB > 0
+// NOLOAD section in internal SRAM (see rnbo_fast_pool.lds). Not zeroed at
+// startup -- calloc() zeroes, same as for the SDRAM pool.
+static char __attribute__((section(".sram_axi_bss"), aligned(32))) s_fastPool[RNBO_FAST_POOL_BYTES];
+static size_t s_fastOffset = 0;
+#endif
+
 // 8-byte alignment for safety with doubles/pointers.
 static inline size_t alignUp(size_t n) {
     return (n + 7u) & ~((size_t)7u);
+}
+
+// Carve `need` bytes from a pool; nullptr if it doesn't fit.
+static inline char *carve(char *pool, size_t poolBytes, size_t &offset, size_t need) {
+    if (offset + need > poolBytes) {
+        return nullptr;
+    }
+    char *base = pool + offset;
+    offset += need;
+    return base;
 }
 
 namespace RNBO {
 namespace Platform {
 
 void *malloc(size_t size) {
-    size = alignUp(size);                       // keep offset a multiple of 8
+    size = alignUp(size);                       // keep offsets a multiple of 8
     size_t need = RNBO_HEADER_BYTES + size;
 
-    if (s_rnboOffset + need > RNBO_POOL_BYTES) {
-        return nullptr;                         // pool exhausted
+    char *base = nullptr;
+#if RNBO_FAST_POOL_KB > 0
+    base = carve(s_fastPool, RNBO_FAST_POOL_BYTES, s_fastOffset, need);   // fast first
+#endif
+    if (base == nullptr) {
+        base = carve(s_rnboPool, RNBO_POOL_BYTES, s_rnboOffset, need);   // then SDRAM
+    }
+    if (base == nullptr) {
+        return nullptr;                         // both pools exhausted
     }
 
-    char *base = &s_rnboPool[s_rnboOffset];      // 8-aligned (offset & pool are)
     *reinterpret_cast<size_t *>(base) = size;    // header: usable size
-    s_rnboOffset += need;
     return base + RNBO_HEADER_BYTES;             // payload, 8-aligned
 }
 
@@ -77,8 +111,8 @@ void *realloc(void *ptr, size_t size) {
         return RNBO::Platform::malloc(size);     // first alloc: nothing to copy
     }
 
-    // Recover the old block's usable size from its header, then copy only the
-    // smaller of old/new so we never read past the old block.
+    // Recover the old block's usable size from its header (works for blocks
+    // from either pool), then copy only the smaller of old/new.
     size_t oldSize = *reinterpret_cast<size_t *>(
         reinterpret_cast<char *>(ptr) - RNBO_HEADER_BYTES);
 
@@ -92,3 +126,16 @@ void *realloc(void *ptr, size_t size) {
 
 } // namespace Platform
 } // namespace RNBO
+
+// Diagnostics: bytes used in each pool (e.g. to show on screen while testing).
+size_t RnboFastPoolUsedBytes() {
+#if RNBO_FAST_POOL_KB > 0
+    return s_fastOffset;
+#else
+    return 0;
+#endif
+}
+
+size_t RnboSdramPoolUsedBytes() {
+    return s_rnboOffset;
+}

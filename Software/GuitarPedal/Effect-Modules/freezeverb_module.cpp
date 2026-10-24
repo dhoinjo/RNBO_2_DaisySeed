@@ -28,12 +28,13 @@ static const char *s_paramNames[FreezeVerbModule::PARAM_COUNT] = {
     "lp",
     "chorus_amt",
     "flutter_spd",
-    "degradation_amt",
-    "degradation_spd"
+    "degr_amt",
+    "degr_spd"
 };
 
 // kshep parameter metadata, same slot order. Labels from RNBO names; defaults
-// from description.json initialValue; no MIDI CC yet (-1).
+// from description.json initialValue; min/max from the RNBO range; MIDI CC per
+// slot (CC 20-31, then 102-105), scaled into min/max like the knobs.
 static const ParameterMetaData s_metaData[FreezeVerbModule::PARAM_COUNT] = {
     {
         name : "decay",
@@ -41,7 +42,9 @@ static const ParameterMetaData s_metaData[FreezeVerbModule::PARAM_COUNT] = {
         valueBinCount : 0,
         defaultValue : {.float_value = 0.7f},
         knobMapping : 0,
-        midiCCMapping : -1
+        midiCCMapping : 20,
+        minValue : 0,
+        maxValue : 1
     },
     {
         name : "reverb amt",
@@ -49,7 +52,9 @@ static const ParameterMetaData s_metaData[FreezeVerbModule::PARAM_COUNT] = {
         valueBinCount : 0,
         defaultValue : {.float_value = 0.5f},
         knobMapping : 1,
-        midiCCMapping : -1
+        midiCCMapping : 21,
+        minValue : 0,
+        maxValue : 1
     },
     {
         name : "lp",
@@ -57,39 +62,49 @@ static const ParameterMetaData s_metaData[FreezeVerbModule::PARAM_COUNT] = {
         valueBinCount : 0,
         defaultValue : {.float_value = 0.7f},
         knobMapping : 2,
-        midiCCMapping : -1
+        midiCCMapping : 22,
+        minValue : 0,
+        maxValue : 1
     },
     {
         name : "chorus amt",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
-        defaultValue : {.float_value = 1.0f},
+        defaultValue : {.float_value = 0.5f},
         knobMapping : 3,
-        midiCCMapping : -1
+        midiCCMapping : 23,
+        minValue : 0,
+        maxValue : 1
     },
     {
         name : "flutter spd",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
-        defaultValue : {.float_value = 1.0f},
+        defaultValue : {.float_value = 0.33f},
         knobMapping : 4,
-        midiCCMapping : -1
+        midiCCMapping : 24,
+        minValue : 0,
+        maxValue : 1
     },
     {
-        name : "degradation amt",
+        name : "degr amt",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
-        defaultValue : {.float_value = 0.02f},
+        defaultValue : {.float_value = 0.2f},
         knobMapping : 5,
-        midiCCMapping : -1
+        midiCCMapping : 25,
+        minValue : 0,
+        maxValue : 1
     },
     {
-        name : "degradation spd",
+        name : "degr spd",
         valueType : ParameterValueType::Float,
         valueBinCount : 0,
-        defaultValue : {.float_value = 0.01f},
+        defaultValue : {.float_value = 0.1f},
         knobMapping : -1,
-        midiCCMapping : -1
+        midiCCMapping : 26,
+        minValue : 0,
+        maxValue : 1
     }
 };
 
@@ -160,25 +175,43 @@ void FreezeVerbModule::Init(float sample_rate) {
         }
     }
 
+    // Initial push of every param; afterwards only changes are sent.
     for (int k = 0; k < FreezeVerbModule::PARAM_COUNT; ++k) {
+        m_lastSent[k] = ParamValueForRnbo(k);
         if (m_paramIndex[k] >= 0) {
-            m_impl->rnbo.setParameterValue(m_paramIndex[k], GetParameterAsFloat(k), RNBO::TimeNow);
+            m_impl->rnbo.setParameterValue(m_paramIndex[k], m_lastSent[k], RNBO::TimeNow);
         }
     }
+    m_lastFsw1Sent = -1.0f; // forces the first footswitch state to be sent
+    m_lastFsw2Sent = -1.0f;
 }
 
 void FreezeVerbModule::ProcessAudioBlock(int size) {
+    // Send only what changed since the last block (each send runs RNBO's
+    // event machinery, so skipping unchanged values saves CPU).
     for (int k = 0; k < FreezeVerbModule::PARAM_COUNT; ++k) {
-        if (m_paramIndex[k] >= 0) {
-            m_impl->rnbo.setParameterValue(m_paramIndex[k], GetParameterAsFloat(k), RNBO::TimeNow);
+        const float v = ParamValueForRnbo(k);
+        if (v != m_lastSent[k]) {
+            m_lastSent[k] = v;
+            if (m_paramIndex[k] >= 0) {
+                m_impl->rnbo.setParameterValue(m_paramIndex[k], v, RNBO::TimeNow);
+            }
         }
     }
 
-    if (m_fsw1Index >= 0) {
-        m_impl->rnbo.setParameterValue(m_fsw1Index, m_fsw1Value, RNBO::TimeNow);
+    const float fsw1 = m_fsw1Value;
+    if (fsw1 != m_lastFsw1Sent) {
+        m_lastFsw1Sent = fsw1;
+        if (m_fsw1Index >= 0) {
+            m_impl->rnbo.setParameterValue(m_fsw1Index, fsw1, RNBO::TimeNow);
+        }
     }
-    if (m_fsw2Index >= 0) {
-        m_impl->rnbo.setParameterValue(m_fsw2Index, m_fsw2Value, RNBO::TimeNow);
+    const float fsw2 = m_fsw2Value;
+    if (fsw2 != m_lastFsw2Sent) {
+        m_lastFsw2Sent = fsw2;
+        if (m_fsw2Index >= 0) {
+            m_impl->rnbo.setParameterValue(m_fsw2Index, fsw2, RNBO::TimeNow);
+        }
     }
 
     m_impl->rnbo.process(m_impl->in, 2, m_impl->out, 2, (RNBO::Index)size);
@@ -189,6 +222,13 @@ void FreezeVerbModule::ProcessAudioBlock(int size) {
     if (m_led2Index >= 0) {
         m_led2Value = (float)m_impl->rnbo.getParameterValue(m_led2Index);
     }
+}
+
+float FreezeVerbModule::ParamValueForRnbo(int k) const {
+    if (GetParameterType(k) == ParameterValueType::Bool) {
+        return GetParameterAsBool(k) ? 1.0f : 0.0f;
+    }
+    return GetParameterAsFloat(k);
 }
 
 void FreezeVerbModule::SetFootswitch(int fsw_id, float value) {

@@ -612,11 +612,11 @@ ConstCharPointer getParameterName(ParameterIndex index) const {
         }
     case 7:
         {
-        return "degradation_spd";
+        return "degr_spd";
         }
     case 8:
         {
-        return "degradation_amt";
+        return "degr_amt";
         }
     case 9:
         {
@@ -670,11 +670,11 @@ ConstCharPointer getParameterId(ParameterIndex index) const {
         }
     case 7:
         {
-        return "degradation_spd";
+        return "degr_spd";
         }
     case 8:
         {
-        return "degradation_amt";
+        return "degr_amt";
         }
     case 9:
         {
@@ -797,9 +797,9 @@ void getParameterInfo(ParameterIndex index, ParameterInfo * info) const {
         case 5:
             {
             info->type = ParameterTypeNumber;
-            info->initialValue = 1;
+            info->initialValue = 0.5;
             info->min = 0;
-            info->max = 2;
+            info->max = 1;
             info->exponent = 1;
             info->steps = 0;
             info->debug = false;
@@ -816,9 +816,9 @@ void getParameterInfo(ParameterIndex index, ParameterInfo * info) const {
         case 6:
             {
             info->type = ParameterTypeNumber;
-            info->initialValue = 1;
-            info->min = 0.2;
-            info->max = 3;
+            info->initialValue = 0.33;
+            info->min = 0;
+            info->max = 1;
             info->exponent = 1;
             info->steps = 0;
             info->debug = false;
@@ -835,9 +835,9 @@ void getParameterInfo(ParameterIndex index, ParameterInfo * info) const {
         case 7:
             {
             info->type = ParameterTypeNumber;
-            info->initialValue = 0.01;
-            info->min = 0.001;
-            info->max = 0.1;
+            info->initialValue = 0.1;
+            info->min = 0;
+            info->max = 1;
             info->exponent = 1;
             info->steps = 0;
             info->debug = false;
@@ -854,9 +854,9 @@ void getParameterInfo(ParameterIndex index, ParameterInfo * info) const {
         case 8:
             {
             info->type = ParameterTypeNumber;
-            info->initialValue = 0.02;
+            info->initialValue = 0.2;
             info->min = 0;
-            info->max = 0.1;
+            info->max = 1;
             info->exponent = 1;
             info->steps = 0;
             info->debug = false;
@@ -942,44 +942,16 @@ ParameterValue convertToNormalizedParameterValue(ParameterIndex index, Parameter
     case 2:
     case 3:
     case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
     case 9:
     case 10:
         {
         {
             value = (value < 0 ? 0 : (value > 1 ? 1 : value));
             ParameterValue normalizedValue = (value - 0) / (1 - 0);
-            return normalizedValue;
-        }
-        }
-    case 5:
-        {
-        {
-            value = (value < 0 ? 0 : (value > 2 ? 2 : value));
-            ParameterValue normalizedValue = (value - 0) / (2 - 0);
-            return normalizedValue;
-        }
-        }
-    case 8:
-        {
-        {
-            value = (value < 0 ? 0 : (value > 0.1 ? 0.1 : value));
-            ParameterValue normalizedValue = (value - 0) / (0.1 - 0);
-            return normalizedValue;
-        }
-        }
-    case 6:
-        {
-        {
-            value = (value < 0.2 ? 0.2 : (value > 3 ? 3 : value));
-            ParameterValue normalizedValue = (value - 0.2) / (3 - 0.2);
-            return normalizedValue;
-        }
-        }
-    case 7:
-        {
-        {
-            value = (value < 0.001 ? 0.001 : (value > 0.1 ? 0.1 : value));
-            ParameterValue normalizedValue = (value - 0.001) / (0.1 - 0.001);
             return normalizedValue;
         }
         }
@@ -1004,44 +976,16 @@ ParameterValue convertFromNormalizedParameterValue(ParameterIndex index, Paramet
     case 2:
     case 3:
     case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
     case 9:
     case 10:
         {
         {
             {
                 return 0 + value * (1 - 0);
-            }
-        }
-        }
-    case 5:
-        {
-        {
-            {
-                return 0 + value * (2 - 0);
-            }
-        }
-        }
-    case 8:
-        {
-        {
-            {
-                return 0 + value * (0.1 - 0);
-            }
-        }
-        }
-    case 6:
-        {
-        {
-            {
-                return 0.2 + value * (3 - 0.2);
-            }
-        }
-        }
-    case 7:
-        {
-        {
-            {
-                return 0.001 + value * (0.1 - 0.001);
             }
         }
         }
@@ -1186,16 +1130,16 @@ const MessageInfo& getMessageInfo(MessageIndex index) const {
 
 protected:
 
-class RNBOSubpatcher_05 : public PatcherInterfaceImpl {
+class RNBOSubpatcher_02 : public PatcherInterfaceImpl {
     
     friend class FreezeVerb;
     
     public:
     
-    RNBOSubpatcher_05()
+    RNBOSubpatcher_02()
     {}
     
-    ~RNBOSubpatcher_05()
+    ~RNBOSubpatcher_02()
     {
         deallocateSignals();
     }
@@ -1436,10 +1380,10 @@ class RNBOSubpatcher_05 : public PatcherInterfaceImpl {
     	updateTime(time, (EXTERNALENGINE*)nullptr);
     }
     
-    RNBOSubpatcher_05* operator->() {
+    RNBOSubpatcher_02* operator->() {
         return this;
     }
-    const RNBOSubpatcher_05* operator->() const {
+    const RNBOSubpatcher_02* operator->() const {
         return this;
     }
     virtual FreezeVerb* getPatcher() const {
@@ -2112,7 +2056,7 @@ void param_06_value_set(number v) {
         this->param_06_lastValue = this->param_06_value;
     }
 
-    this->gen_01_chorus_set(v);
+    this->expr_02_in1_set(v);
 }
 
 void param_07_value_set(number v) {
@@ -2128,7 +2072,7 @@ void param_07_value_set(number v) {
         this->param_07_lastValue = this->param_07_value;
     }
 
-    this->gen_01_flutter_speed_set(v);
+    this->expr_03_in1_set(v);
 }
 
 void param_08_value_set(number v) {
@@ -2144,7 +2088,7 @@ void param_08_value_set(number v) {
         this->param_08_lastValue = this->param_08_value;
     }
 
-    this->gen_01_degradation_speed_set(v);
+    this->expr_05_in1_set(v);
 }
 
 void param_09_value_set(number v) {
@@ -2160,7 +2104,7 @@ void param_09_value_set(number v) {
         this->param_09_lastValue = this->param_09_value;
     }
 
-    this->gen_01_degradation_amount_set(v);
+    this->expr_04_in1_set(v);
 }
 
 void param_10_value_set(number v) {
@@ -2333,8 +2277,8 @@ void initializeObjects() {
     this->gen_01_noise_state_3_init();
     this->gen_01_noise_state_4_init();
     this->gen_01_chorus_smooth_init();
-    this->gen_01_noise_7_init();
-    this->gen_01_noise_9_init();
+    this->gen_01_noise_8_init();
+    this->gen_01_noise_10_init();
     this->p_01->initializeObjects();
 }
 
@@ -2702,7 +2646,7 @@ void gen_01_lp_set(number v) {
 }
 
 number param_06_value_constrain(number v) const {
-    v = (v > 2 ? 2 : (v < 0 ? 0 : v));
+    v = (v > 1 ? 1 : (v < 0 ? 0 : v));
     return v;
 }
 
@@ -2721,8 +2665,18 @@ void gen_01_chorus_set(number v) {
     this->gen_01_chorus = v;
 }
 
+void expr_02_out1_set(number v) {
+    this->expr_02_out1 = v;
+    this->gen_01_chorus_set(this->expr_02_out1);
+}
+
+void expr_02_in1_set(number in1) {
+    this->expr_02_in1 = in1;
+    this->expr_02_out1_set(this->expr_02_in1 * this->expr_02_in2);//#map:*_obj-28:1
+}
+
 number param_07_value_constrain(number v) const {
-    v = (v > 3 ? 3 : (v < 0.2 ? 0.2 : v));
+    v = (v > 1 ? 1 : (v < 0 ? 0 : v));
     return v;
 }
 
@@ -2741,9 +2695,23 @@ void gen_01_flutter_speed_set(number v) {
     this->gen_01_flutter_speed = v;
 }
 
+void expr_03_out1_set(number v) {
+    this->expr_03_out1 = v;
+    this->gen_01_flutter_speed_set(this->expr_03_out1);
+}
+
+void expr_03_in1_set(number in1) {
+    this->expr_03_in1 = in1;
+    this->expr_03_out1_set(this->expr_03_in1 * this->expr_03_in2);//#map:*_obj-27:1
+}
+
 number param_08_value_constrain(number v) const {
-    v = (v > 0.1 ? 0.1 : (v < 0.001 ? 0.001 : v));
+    v = (v > 1 ? 1 : (v < 0 ? 0 : v));
     return v;
+}
+
+void maximum_02_index_set(number v) {
+    this->maximum_02_index = v;
 }
 
 number gen_01_degradation_speed_constrain(number v) const {
@@ -2761,8 +2729,54 @@ void gen_01_degradation_speed_set(number v) {
     this->gen_01_degradation_speed = v;
 }
 
+void maximum_02_out_set(number v) {
+    this->maximum_02_out = v;
+    this->gen_01_degradation_speed_set(v);
+}
+
+template<typename LISTTYPE> void maximum_02_input_set(const LISTTYPE& v) {
+    this->maximum_02_input = jsCreateListCopy(v);
+
+    if (v->length == 1) {
+        if (v[0] > this->maximum_02_right) {
+            this->maximum_02_index_set(0);
+            this->maximum_02_out_set(v[0]);
+        } else {
+            this->maximum_02_index_set(1);
+            this->maximum_02_out_set(this->maximum_02_right);
+        }
+    } else if (v->length > 0) {
+        Int idx = 0;
+        number maximum = v[0];
+
+        for (Index i = 1; i < v->length; i++) {
+            if (v[(Index)i] > maximum) {
+                maximum = v[(Index)i];
+                idx = i;
+            }
+        }
+
+        this->maximum_02_index_set(idx);
+        this->maximum_02_out_set(maximum);
+    }
+}
+
+void expr_05_out1_set(number v) {
+    this->expr_05_out1 = v;
+
+    {
+        listbase<number, 1> converted = {this->expr_05_out1};
+        this->maximum_02_input_set(converted);
+    }
+}
+
+void expr_05_in1_set(number in1) {
+    this->expr_05_in1 = in1;
+    this->expr_05_out1_set(this->expr_05_in1 * this->expr_05_in2);//#map:*_obj-17:1
+}
+
 number param_09_value_constrain(number v) const {
-    v = (v > 0.1 ? 0.1 : (v < 0 ? 0 : v));
+    v = (v > 1 ? 1 : (v < 0 ? 0 : v));
     return v;
 }
 
@@ -2779,6 +2793,16 @@ number gen_01_degradation_amount_constrain(number v) const {
 void gen_01_degradation_amount_set(number v) {
     v = this->gen_01_degradation_amount_constrain(v);
     this->gen_01_degradation_amount = v;
+}
+
+void expr_04_out1_set(number v) {
+    this->expr_04_out1 = v;
+    this->gen_01_degradation_amount_set(this->expr_04_out1);
+}
+
+void expr_04_in1_set(number in1) {
+    this->expr_04_in1 = in1;
+    this->expr_04_out1_set(this->expr_04_in1 * this->expr_04_in2);//#map:*_obj-20:1
 }
 
 number param_10_value_constrain(number v) const {
@@ -2881,62 +2905,65 @@ void gen_01_perform(
         number chorus_smooth_new_1 = __gen_01_chorus_smooth_value + (chorus - __gen_01_chorus_smooth_value) * 0.001;
         auto lfo1_phase_new_4 = this->wrap(__gen_01_lfo1_phase_value + lfo1_inc_2, 0, 1);
         auto lfo2_phase_new_5 = this->wrap(__gen_01_lfo2_phase_value + lfo2_inc_3, 0, 1);
-        number lfo2_6 = rnbo_sin(lfo2_phase_new_5 * 6.28318530717958647692);
-        number noise_state_3_new_8 = __gen_01_noise_state_3_value * (1 - degradation_speed) + this->gen_01_noise_7_next() * degradation_speed;
-        number noise_state_4_new_10 = __gen_01_noise_state_4_value * (1 - degradation_speed) + this->gen_01_noise_9_next() * degradation_speed;
-        number degradation_5_11 = 1 - rnbo_abs(noise_state_3_new_8) * degradation_amount;
-        number degradation_6_12 = 1 - rnbo_abs(noise_state_4_new_10) * degradation_amount;
-        number ap1_out_13 = this->gen_01_ap1_read(113, 0);
-        number ap1_in_14 = input_0 + ap1_out_13 * 0.625;
-        number ap1_write_15 = ap1_in_14 * -0.625 + ap1_out_13;
-        number ap2_out_16 = this->gen_01_ap2_read(162, 0);
-        number ap2_in_17 = ap1_write_15 + ap2_out_16 * 0.625;
-        number ap2_write_18 = ap2_in_17 * -0.625 + ap2_out_16;
-        number ap3_out_19 = this->gen_01_ap3_read(241, 0);
-        number ap3_in_20 = ap2_write_18 + ap3_out_19 * 0.625;
-        number ap3_write_21 = ap3_in_20 * -0.625 + ap3_out_19;
-        number ap4_out_22 = this->gen_01_ap4_read(399, 0);
-        number ap4_in_23 = ap3_write_21 + ap4_out_22 * 0.625;
-        number apout_24 = ap4_in_23 * -0.625 + ap4_out_22;
-        number del2_mod_25 = this->gen_01_del2_read(4680 + lfo2_6 * 100 * chorus_smooth_new_1, 0) * reverb_time;
-        number lp1_out_26 = del2_mod_25 + (__gen_01_lp_decay_1_value - del2_mod_25) * lp;
-        number dap1a_out_27 = this->gen_01_dap1a_read(1653, 0);
-        number dap1a_in_28 = lp1_out_26 + dap1a_out_27 * -0.625;
-        number dap1a_write_29 = dap1a_in_28 * 0.625 + dap1a_out_27;
-        number dap1b_out_30 = this->gen_01_dap1b_read(2038, 0);
-        number dap1b_in_31 = dap1a_write_29 + dap1b_out_30 * 0.625;
-        number dap1b_write_32 = dap1b_in_31 * -0.625 + dap1b_out_30;
-        number del1_read_33 = this->gen_01_del1_read(3411, 0) * reverb_time;
-        number lp2_out_34 = del1_read_33 + (__gen_01_lp_decay_2_value - del1_read_33) * lp;
-        number dap2a_out_35 = this->gen_01_dap2a_read(1913, 0);
-        number dap2a_in_36 = lp2_out_34 + dap2a_out_35 * 0.625;
-        number dap2a_write_37 = dap2a_in_36 * -0.625 + dap2a_out_35;
-        number dap2b_out_38 = this->gen_01_dap2b_read(1663, 0);
-        number dap2b_in_39 = dap2a_write_37 + dap2b_out_38 * -0.625;
-        number dap2b_write_40 = dap2b_in_39 * 0.625 + dap2b_out_38;
-        number expr_7_41 = rnbo_tanh(in1[(Index)i] + (dap1b_write_32 - in1[(Index)i]) * amount);
-        number expr_8_42 = rnbo_tanh(in2[(Index)i] + (dap2b_write_40 - in2[(Index)i]) * amount);
-        this->gen_01_del1_write((apout_24 + rnbo_tanh(dap1b_write_32)) * degradation_5_11);
-        this->gen_01_del2_write((apout_24 + rnbo_tanh(dap2b_write_40)) * degradation_6_12);
-        this->gen_01_dap1a_write(dap1a_in_28);
-        this->gen_01_dap1b_write(dap1b_in_31);
-        this->gen_01_dap2a_write(dap2a_in_36);
-        this->gen_01_dap2b_write(dap2b_in_39);
-        this->gen_01_ap1_write(ap1_in_14);
-        this->gen_01_ap2_write(ap2_in_17);
-        this->gen_01_ap3_write(ap3_in_20);
-        this->gen_01_ap4_write(ap4_in_23);
-        __gen_01_lp_decay_1_value = lp1_out_26;
-        __gen_01_lp_decay_2_value = lp2_out_34;
+        number lfo1_6 = rnbo_sin(lfo1_phase_new_4 * 6.28318530717958647692);
+        number lfo2_7 = rnbo_sin(lfo2_phase_new_5 * 6.28318530717958647692);
+        number noise_state_3_new_9 = __gen_01_noise_state_3_value * (1 - degradation_speed) + this->gen_01_noise_8_next() * degradation_speed;
+        number noise_state_4_new_11 = __gen_01_noise_state_4_value * (1 - degradation_speed) + this->gen_01_noise_10_next() * degradation_speed;
+        number degradation_5_12 = 1 - rnbo_abs(noise_state_3_new_9) * degradation_amount;
+        number degradation_6_13 = 1 - rnbo_abs(noise_state_4_new_11) * degradation_amount;
+        number ap1_out_14 = this->gen_01_ap1_read(113, 0);
+        number ap1_in_15 = input_0 + ap1_out_14 * 0.625;
+        number ap1_write_16 = ap1_in_15 * -0.625 + ap1_out_14;
+        number ap2_out_17 = this->gen_01_ap2_read(162, 0);
+        number ap2_in_18 = ap1_write_16 + ap2_out_17 * 0.625;
+        number ap2_write_19 = ap2_in_18 * -0.625 + ap2_out_17;
+        number ap3_out_20 = this->gen_01_ap3_read(241, 0);
+        number ap3_in_21 = ap2_write_19 + ap3_out_20 * 0.625;
+        number ap3_write_22 = ap3_in_21 * -0.625 + ap3_out_20;
+        number ap4_out_23 = this->gen_01_ap4_read(399, 0);
+        number ap4_in_24 = ap3_write_22 + ap4_out_23 * 0.625;
+        number apout_25 = ap4_in_24 * -0.625 + ap4_out_23;
+        number del2_mod_26 = this->gen_01_del2_read(4680 + lfo2_7 * 100 * chorus_smooth_new_1, 0) * reverb_time;
+        number lp1_out_27 = del2_mod_26 + (__gen_01_lp_decay_1_value - del2_mod_26) * lp;
+        number dap1a_out_28 = this->gen_01_dap1a_read(1653, 0);
+        number dap1a_in_29 = lp1_out_27 + dap1a_out_28 * -0.625;
+        number dap1a_write_30 = dap1a_in_29 * 0.625 + dap1a_out_28;
+        number dap1b_out_31 = this->gen_01_dap1b_read(2038, 0);
+        number dap1b_in_32 = dap1a_write_30 + dap1b_out_31 * 0.625;
+        number dap1b_write_33 = dap1b_in_32 * -0.625 + dap1b_out_31;
+        number wet_l_34 = dap1b_write_33;
+        number del1_read_35 = this->gen_01_del1_read(3411, 0) * reverb_time;
+        number lp2_out_36 = del1_read_35 + (__gen_01_lp_decay_2_value - del1_read_35) * lp;
+        number dap2a_out_37 = this->gen_01_dap2a_read(1913, 0);
+        number dap2a_in_38 = lp2_out_36 + dap2a_out_37 * 0.625;
+        number dap2a_write_39 = dap2a_in_38 * -0.625 + dap2a_out_37;
+        number dap2b_out_40 = this->gen_01_dap2b_read(1663, 0);
+        number dap2b_in_41 = dap2a_write_39 + dap2b_out_40 * -0.625;
+        number dap2b_write_42 = dap2b_in_41 * 0.625 + dap2b_out_40;
+        number wet_r_43 = dap2b_write_42;
+        number tmp_expr_7_44 = rnbo_tanh(in1[(Index)i] + (wet_l_34 - in1[(Index)i]) * amount);
+        number tmp_expr_8_45 = rnbo_tanh(in2[(Index)i] + (wet_r_43 - in2[(Index)i]) * amount);
+        this->gen_01_del1_write((apout_25 + rnbo_tanh(dap1b_write_33)) * degradation_5_12);
+        this->gen_01_del2_write((apout_25 + rnbo_tanh(dap2b_write_42)) * degradation_6_13);
+        this->gen_01_dap1a_write(dap1a_in_29);
+        this->gen_01_dap1b_write(dap1b_in_32);
+        this->gen_01_dap2a_write(dap2a_in_38);
+        this->gen_01_dap2b_write(dap2b_in_41);
+        this->gen_01_ap1_write(ap1_in_15);
+        this->gen_01_ap2_write(ap2_in_18);
+        this->gen_01_ap3_write(ap3_in_21);
+        this->gen_01_ap4_write(ap4_in_24);
+        __gen_01_lp_decay_1_value = lp1_out_27;
+        __gen_01_lp_decay_2_value = lp2_out_36;
         __gen_01_lfo1_phase_value = lfo1_phase_new_4;
         __gen_01_lfo2_phase_value = lfo2_phase_new_5;
-        __gen_01_noise_state_3_value = noise_state_3_new_8;
-        __gen_01_noise_state_4_value = noise_state_4_new_10;
+        __gen_01_noise_state_3_value = noise_state_3_new_9;
+        __gen_01_noise_state_4_value = noise_state_4_new_11;
         __gen_01_chorus_smooth_value = chorus_smooth_new_1;
-        number dcblock_9_44 = this->gen_01_dcblock_43_next(expr_8_42, 0.9997);
-        out2[(Index)i] = dcblock_9_44;
-        number dcblock_10_46 = this->gen_01_dcblock_45_next(expr_7_41, 0.9997);
-        out1[(Index)i] = dcblock_10_46;
+        number tmp_dcblock_9_47 = this->gen_01_dcblock_46_next(tmp_expr_8_45, 0.9997);
+        out2[(Index)i] = tmp_dcblock_9_47;
+        number tmp_dcblock_10_49 = this->gen_01_dcblock_48_next(tmp_expr_7_44, 0.9997);
+        out1[(Index)i] = tmp_dcblock_10_49;
         this->gen_01_ap1_step();
         this->gen_01_ap2_step();
         this->gen_01_ap3_step();
@@ -4189,76 +4216,76 @@ void gen_01_chorus_smooth_init() {
     this->gen_01_chorus_smooth_value = 1;
 }
 
-void gen_01_noise_7_reset() {
+void gen_01_noise_8_reset() {
     xoshiro_reset(
         systemticks() + this->voice() + this->random(0, 10000),
-        this->gen_01_noise_7_state
+        this->gen_01_noise_8_state
     );
 }
 
-void gen_01_noise_7_init() {
-    this->gen_01_noise_7_reset();
+void gen_01_noise_8_init() {
+    this->gen_01_noise_8_reset();
 }
 
-void gen_01_noise_7_seed(number v) {
-    xoshiro_reset(v, this->gen_01_noise_7_state);
+void gen_01_noise_8_seed(number v) {
+    xoshiro_reset(v, this->gen_01_noise_8_state);
 }
 
-number gen_01_noise_7_next() {
-    return xoshiro_next(this->gen_01_noise_7_state);
+number gen_01_noise_8_next() {
+    return xoshiro_next(this->gen_01_noise_8_state);
 }
 
-void gen_01_noise_9_reset() {
+void gen_01_noise_10_reset() {
     xoshiro_reset(
         systemticks() + this->voice() + this->random(0, 10000),
-        this->gen_01_noise_9_state
+        this->gen_01_noise_10_state
     );
 }
 
-void gen_01_noise_9_init() {
-    this->gen_01_noise_9_reset();
+void gen_01_noise_10_init() {
+    this->gen_01_noise_10_reset();
 }
 
-void gen_01_noise_9_seed(number v) {
-    xoshiro_reset(v, this->gen_01_noise_9_state);
+void gen_01_noise_10_seed(number v) {
+    xoshiro_reset(v, this->gen_01_noise_10_state);
 }
 
-number gen_01_noise_9_next() {
-    return xoshiro_next(this->gen_01_noise_9_state);
+number gen_01_noise_10_next() {
+    return xoshiro_next(this->gen_01_noise_10_state);
 }
 
-number gen_01_dcblock_43_next(number x, number gain) {
+number gen_01_dcblock_46_next(number x, number gain) {
     RNBO_UNUSED(gain);
-    number y = x - this->gen_01_dcblock_43_xm1 + this->gen_01_dcblock_43_ym1 * 0.9997;
-    this->gen_01_dcblock_43_xm1 = x;
-    this->gen_01_dcblock_43_ym1 = y;
+    number y = x - this->gen_01_dcblock_46_xm1 + this->gen_01_dcblock_46_ym1 * 0.9997;
+    this->gen_01_dcblock_46_xm1 = x;
+    this->gen_01_dcblock_46_ym1 = y;
     return y;
 }
 
-void gen_01_dcblock_43_reset() {
-    this->gen_01_dcblock_43_xm1 = 0;
-    this->gen_01_dcblock_43_ym1 = 0;
+void gen_01_dcblock_46_reset() {
+    this->gen_01_dcblock_46_xm1 = 0;
+    this->gen_01_dcblock_46_ym1 = 0;
 }
 
-void gen_01_dcblock_43_dspsetup() {
-    this->gen_01_dcblock_43_reset();
+void gen_01_dcblock_46_dspsetup() {
+    this->gen_01_dcblock_46_reset();
 }
 
-number gen_01_dcblock_45_next(number x, number gain) {
+number gen_01_dcblock_48_next(number x, number gain) {
     RNBO_UNUSED(gain);
-    number y = x - this->gen_01_dcblock_45_xm1 + this->gen_01_dcblock_45_ym1 * 0.9997;
-    this->gen_01_dcblock_45_xm1 = x;
-    this->gen_01_dcblock_45_ym1 = y;
+    number y = x - this->gen_01_dcblock_48_xm1 + this->gen_01_dcblock_48_ym1 * 0.9997;
+    this->gen_01_dcblock_48_xm1 = x;
+    this->gen_01_dcblock_48_ym1 = y;
     return y;
 }
 
-void gen_01_dcblock_45_reset() {
-    this->gen_01_dcblock_45_xm1 = 0;
-    this->gen_01_dcblock_45_ym1 = 0;
+void gen_01_dcblock_48_reset() {
+    this->gen_01_dcblock_48_xm1 = 0;
+    this->gen_01_dcblock_48_ym1 = 0;
 }
 
-void gen_01_dcblock_45_dspsetup() {
-    this->gen_01_dcblock_45_reset();
+void gen_01_dcblock_48_dspsetup() {
+    this->gen_01_dcblock_48_reset();
 }
 
 void gen_01_dspsetup(bool force) {
@@ -4276,8 +4303,8 @@ void gen_01_dspsetup(bool force) {
     this->gen_01_dap2a_dspsetup();
     this->gen_01_dap2b_dspsetup();
     this->gen_01_del2_dspsetup();
-    this->gen_01_dcblock_43_dspsetup();
-    this->gen_01_dcblock_45_dspsetup();
+    this->gen_01_dcblock_46_dspsetup();
+    this->gen_01_dcblock_48_dspsetup();
 }
 
 void param_05_getPresetValue(PatcherStateInterface& preset) {
@@ -4442,10 +4469,25 @@ void assign_defaults()
     gen_01_degradation_amount = 0.02;
     gen_01_degradation_speed = 0.01;
     param_05_value = 0.7;
-    param_06_value = 1;
-    param_07_value = 1;
-    param_08_value = 0.01;
-    param_09_value = 0.02;
+    expr_02_in1 = 0;
+    expr_02_in2 = 2;
+    expr_02_out1 = 0;
+    param_06_value = 0.5;
+    expr_03_in1 = 0;
+    expr_03_in2 = 3;
+    expr_03_out1 = 0;
+    param_07_value = 0.33;
+    expr_04_in1 = 0;
+    expr_04_in2 = 0.1;
+    expr_04_out1 = 0;
+    maximum_02_right = 0.01;
+    maximum_02_out = 0;
+    maximum_02_index = 0;
+    expr_05_in1 = 0;
+    expr_05_in2 = 0.1;
+    expr_05_out1 = 0;
+    param_08_value = 0.1;
+    param_09_value = 0.2;
     param_10_value = 0;
     param_11_value = 0;
     dspexpr_02_in1 = 0;
@@ -4529,10 +4571,10 @@ void assign_defaults()
     gen_01_noise_state_3_value = 0;
     gen_01_noise_state_4_value = 0;
     gen_01_chorus_smooth_value = 0;
-    gen_01_dcblock_43_xm1 = 0;
-    gen_01_dcblock_43_ym1 = 0;
-    gen_01_dcblock_45_xm1 = 0;
-    gen_01_dcblock_45_ym1 = 0;
+    gen_01_dcblock_46_xm1 = 0;
+    gen_01_dcblock_46_ym1 = 0;
+    gen_01_dcblock_48_xm1 = 0;
+    gen_01_dcblock_48_ym1 = 0;
     gen_01_setupDone = false;
     param_05_lastValue = 0;
     param_06_lastValue = 0;
@@ -4615,8 +4657,24 @@ void assign_defaults()
     number gen_01_degradation_amount;
     number gen_01_degradation_speed;
     number param_05_value;
+    number expr_02_in1;
+    number expr_02_in2;
+    number expr_02_out1;
     number param_06_value;
+    number expr_03_in1;
+    number expr_03_in2;
+    number expr_03_out1;
     number param_07_value;
+    number expr_04_in1;
+    number expr_04_in2;
+    number expr_04_out1;
+    list maximum_02_input;
+    number maximum_02_right;
+    number maximum_02_out;
+    number maximum_02_index;
+    number expr_05_in1;
+    number expr_05_in2;
+    number expr_05_out1;
     number param_08_value;
     number param_09_value;
     number param_10_value;
@@ -4712,12 +4770,12 @@ void assign_defaults()
     number gen_01_noise_state_3_value;
     number gen_01_noise_state_4_value;
     number gen_01_chorus_smooth_value;
-    UInt gen_01_noise_7_state[4] = { };
-    UInt gen_01_noise_9_state[4] = { };
-    number gen_01_dcblock_43_xm1;
-    number gen_01_dcblock_43_ym1;
-    number gen_01_dcblock_45_xm1;
-    number gen_01_dcblock_45_ym1;
+    UInt gen_01_noise_8_state[4] = { };
+    UInt gen_01_noise_10_state[4] = { };
+    number gen_01_dcblock_46_xm1;
+    number gen_01_dcblock_46_ym1;
+    number gen_01_dcblock_48_xm1;
+    number gen_01_dcblock_48_ym1;
     bool gen_01_setupDone;
     number param_05_lastValue;
     number param_06_lastValue;
@@ -4744,7 +4802,7 @@ void assign_defaults()
     Index isMuted;
     indexlist paramInitIndices;
     indexlist paramInitOrder;
-    RNBOSubpatcher_05 p_01;
+    RNBOSubpatcher_02 p_01;
     bool _isInitialized = false;
 };
 

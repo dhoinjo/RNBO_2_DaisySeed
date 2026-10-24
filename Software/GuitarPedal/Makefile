@@ -39,44 +39,50 @@ C_SOURCES += $(CMSIS_DSP_SRC)
 # Naming the module sources explicitly to make it easier to add/remove from build. Otherwise all global attributes
 #  will be included in the build and take up memory resources, even when the .h file is commented out. 
 
-//CPP_SOURCES += Effect-Modules/autopan_module.cpp
-CPP_SOURCES += Effect-Modules/Chopper/chopper.cpp
-CPP_SOURCES += Effect-Modules/chopper_module.cpp
-CPP_SOURCES += Effect-Modules/chorus_module.cpp
-CPP_SOURCES += Effect-Modules/cloudseed_module.cpp
-//CPP_SOURCES += Effect-Modules/compressor_module.cpp
-//CPP_SOURCES += Effect-Modules/crusher_module.cpp
-CPP_SOURCES += Effect-Modules/delay_module.cpp
-//CPP_SOURCES += Effect-Modules/drum_module.cpp
-CPP_SOURCES += Effect-Modules/flanger_module.cpp
-//CPP_SOURCES += Effect-Modules/geq_module.cpp
-CPP_SOURCES += Effect-Modules/granulardelay_module.cpp
-CPP_SOURCES += Effect-Modules/distortion_module.cpp
-//CPP_SOURCES += Effect-Modules/effect_chain.cpp
-CPP_SOURCES += Effect-Modules/harmonic_tremolo_module.cpp
-//CPP_SOURCES += Effect-Modules/ImpulseResponse/ImpulseResponse.cpp
-//CPP_SOURCES += Effect-Modules/ImpulseResponse/ir_data.cpp
-//CPP_SOURCES += Effect-Modules/ir_module.cpp
-//CPP_SOURCES += Effect-Modules/looper_module.cpp
-//CPP_SOURCES += Effect-Modules/metro_module.cpp
-CPP_SOURCES += Effect-Modules/modulated_tremolo_module.cpp
-//CPP_SOURCES += Effect-Modules/multi_delay_module.cpp
-//CPP_SOURCES += Effect-Modules/nam_a2_module.cpp
-//CPP_SOURCES += Effect-Modules/noise_gate_module.cpp
-//CPP_SOURCES += Effect-Modules/overdrive_module.cpp
-//CPP_SOURCES += Effect-Modules/peq_module.cpp
-CPP_SOURCES += Effect-Modules/phaser_module.cpp
-CPP_SOURCES += Effect-Modules/pitch_shifter_module.cpp
-CPP_SOURCES += Effect-Modules/polyoctave_module.cpp
-CPP_SOURCES += Effect-Modules/reverb_module.cpp
-CPP_SOURCES += Effect-Modules/scifi_module.cpp
-CPP_SOURCES += Effect-Modules/scope_module.cpp
-CPP_SOURCES += Effect-Modules/spectral_delay_module.cpp
-CPP_SOURCES += Effect-Modules/tape_delay_module.cpp
-CPP_SOURCES += Effect-Modules/tuner_module.cpp
-CPP_SOURCES += Effect-Modules/freezeverb_module.cpp
+#CPP_SOURCES += Effect-Modules/autopan_module.cpp
+#CPP_SOURCES += Effect-Modules/Chopper/chopper.cpp
+#CPP_SOURCES += Effect-Modules/chopper_module.cpp
+#CPP_SOURCES += Effect-Modules/chorus_module.cpp
+#CPP_SOURCES += Effect-Modules/cloudseed_module.cpp
+#CPP_SOURCES += Effect-Modules/compressor_module.cpp
+#CPP_SOURCES += Effect-Modules/crusher_module.cpp
+#CPP_SOURCES += Effect-Modules/delay_module.cpp
+#CPP_SOURCES += Effect-Modules/drum_module.cpp
+#CPP_SOURCES += Effect-Modules/flanger_module.cpp
+#CPP_SOURCES += Effect-Modules/geq_module.cpp
+#CPP_SOURCES += Effect-Modules/granulardelay_module.cpp
+#CPP_SOURCES += Effect-Modules/distortion_module.cpp
+#CPP_SOURCES += Effect-Modules/effect_chain.cpp
+#CPP_SOURCES += Effect-Modules/harmonic_tremolo_module.cpp
+#CPP_SOURCES += Effect-Modules/ImpulseResponse/ImpulseResponse.cpp
+#CPP_SOURCES += Effect-Modules/ImpulseResponse/ir_data.cpp
+#CPP_SOURCES += Effect-Modules/ir_module.cpp
+#CPP_SOURCES += Effect-Modules/looper_module.cpp
+#CPP_SOURCES += Effect-Modules/metro_module.cpp
+#CPP_SOURCES += Effect-Modules/modulated_tremolo_module.cpp
+#CPP_SOURCES += Effect-Modules/multi_delay_module.cpp
+#CPP_SOURCES += Effect-Modules/nam_a2_module.cpp
+#CPP_SOURCES += Effect-Modules/noise_gate_module.cpp
+#CPP_SOURCES += Effect-Modules/overdrive_module.cpp
+#CPP_SOURCES += Effect-Modules/peq_module.cpp
+#CPP_SOURCES += Effect-Modules/phaser_module.cpp
+#CPP_SOURCES += Effect-Modules/pitch_shifter_module.cpp
+#CPP_SOURCES += Effect-Modules/polyoctave_module.cpp
+#CPP_SOURCES += Effect-Modules/reverb_module.cpp
+#CPP_SOURCES += Effect-Modules/scifi_module.cpp
+#CPP_SOURCES += Effect-Modules/scope_module.cpp
+#CPP_SOURCES += Effect-Modules/spectral_delay_module.cpp
+#CPP_SOURCES += Effect-Modules/tape_delay_module.cpp
+#CPP_SOURCES += Effect-Modules/scrub_module.cpp
 #CPP_SOURCES += Effect-Modules/reverb_delay_module.cpp
-CPP_SOURCES += dependencies/RNBO/rnbo_allocator.cpp
+#CPP_SOURCES += dependencies/RNBO/rnbo_allocator.cpp
+#CPP_SOURCES += Effect-Modules/spectralscrub_module.cpp
+#CPP_SOURCES += Effect-Modules/tuner_module.cpp
+#CPP_SOURCES += Effect-Modules/freezeverb_module.cpp
+#CPP_SOURCES += Effect-Modules/graincloud_module.cpp
+#CPP_SOURCES += Effect-Modules/centroid_res_module.cpp
+#CPP_SOURCES += Effect-Modules/tribonacci_module.cpp
+#CPP_SOURCES += Effect-Modules/phrase_shuffle_module.cpp
 
 # Keyboard oriented modules
 #CPP_SOURCES += Effect-Modules/fm_keys_module.cpp
@@ -84,6 +90,42 @@ CPP_SOURCES += dependencies/RNBO/rnbo_allocator.cpp
 #CPP_SOURCES += Effect-Modules/modal_keys_module.cpp
 #CPP_SOURCES += Effect-Modules/pluckecho_module.cpp
 #CPP_SOURCES += Effect-Modules/string_keys_module.cpp
+
+# RNBO effects are no longer listed here: pedals/<name>.mk picks them.
+# --- Pedal profiles (make_effect v6) --- [start]
+# Linker fragment for the RNBO fast pool (see rnbo_fast_pool.lds). Must come
+# before libDaisy's main linker script, like nam_a2_sections.lds.
+LDFLAGS += -T$(abspath rnbo_fast_pool.lds)
+
+# Build:   make PEDAL=pedal_a          Flash: make PEDAL=pedal_a program-dfu
+# A profile is pedals/<name>.mk with one line, e.g.
+#     EFFECTS = tribonacci freezeverb
+# Each pedal builds in its own folder (build_<name>), so switching pedals
+# never recompiles what was already built for that pedal.
+ifneq ($(PEDAL),)
+  PEDAL_FILE := pedals/$(PEDAL).mk
+  ifeq ($(wildcard $(PEDAL_FILE)),)
+    $(error No profile $(PEDAL_FILE). Available: $(basename $(notdir $(wildcard pedals/*.mk))))
+  endif
+  include $(PEDAL_FILE)
+  override BUILD_DIR := build_$(PEDAL)
+  # Fast RNBO pool in internal SRAM, per pedal (FAST_POOL_KB in the profile).
+  FAST_POOL_KB ?= 0
+  C_DEFS += -DRNBO_FAST_POOL_KB=$(FAST_POOL_KB)
+  $(foreach e,$(EFFECTS),$(if $(wildcard Effect-Modules/$(e)_module.cpp),,$(error $(PEDAL_FILE): no Effect-Modules/$(e)_module.cpp - run make_effect.py for '$(e)' first)))
+  $(foreach e,$(EFFECTS),$(if $(shell grep -Eq 'ifdef[[:space:]]+FX_$(e)[[:space:]]*$$' loaded_effects.h && echo y),,$(error $(PEDAL_FILE): '$(e)' is not wired into loaded_effects.h - run make_effect.py for '$(e)' first)))
+  CPP_SOURCES += $(foreach e,$(EFFECTS),Effect-Modules/$(e)_module.cpp)
+  C_DEFS += $(foreach e,$(EFFECTS),-DFX_$(e))
+  ifneq ($(strip $(EFFECTS)),)
+    CPP_SOURCES += dependencies/RNBO/rnbo_allocator.cpp
+  endif
+  $(info PEDAL=$(PEDAL)  EFFECTS=$(EFFECTS)  BUILD_DIR=$(BUILD_DIR))
+else
+  ifeq ($(filter clean clean-all,$(MAKECMDGOALS)),)
+    $(error Say which pedal: make PEDAL=<name>. Available: $(basename $(notdir $(wildcard pedals/*.mk))))
+  endif
+endif
+# --- Pedal profiles --- [end]
 
 
 # Dattorro plate reverb - disabled by default because Effect-Modules/Dattorro/
@@ -136,7 +178,7 @@ LIBDIR += -Ldependencies/CloudSeed/build
 
 C_INCLUDES += -isystem ./dependencies/RNBO
 C_INCLUDES += -isystem ./dependencies/RNBO/common
-C_DEFS += -DRNBO_USE_FLOAT32 -DRNBO_NOTHROW -DRNBO_NOSTL -DRNBO_USECUSTOMALLOCATOR
+C_DEFS += -DRNBO_USE_FLOAT32 -DRNBO_NOTHROW -DRNBO_USECUSTOMALLOCATOR -DRNBO_NO_PATCHERFACTORY -DRNBO_NOSTL
 
 # Add CMSIS-DSP include path
 C_INCLUDES += -I$(CMSIS_DSP_DIR)/Include
@@ -174,3 +216,20 @@ ifneq ($(GCC_VERSION_MAJOR),$(GCC_VERSION_MAJOR_REQUIRED))
 $(error Compiler version of arm-none-eabi-gcc: $(GCC_VERSION) is not supported. Use version $(GCC_VERSION_MAJOR_REQUIRED).x.x)
 endif
 # --- ARM SDK Version check --- [end]
+
+# --- Pedal profiles, part B --- [start]
+# Changing a profile rebuilds only guitar_pedal.cpp (it holds the effect list).
+# Each effect also rebuilds when its RNBO export changes. The compiler's own
+# dependency tracking can't see the export: dependencies/RNBO is included with
+# -isystem, and -MMD skips "system" headers. Same for an RNBO runtime update.
+ifneq ($(PEDAL),)
+$(BUILD_DIR)/guitar_pedal.o: $(PEDAL_FILE) loaded_effects.h
+$(BUILD_DIR)/rnbo_allocator.o: $(PEDAL_FILE)
+$(foreach e,$(EFFECTS),$(eval $(BUILD_DIR)/$(e)_module.o: $(wildcard dependencies/RNBO/$(e).cpp.h dependencies/RNBO/.rnbo_version)))
+endif
+
+# make clean PEDAL=x  -> cleans only that pedal.  make clean-all -> every pedal.
+.PHONY: clean-all
+clean-all:
+	-rm -fR build build_*
+# --- Pedal profiles, part B --- [end]

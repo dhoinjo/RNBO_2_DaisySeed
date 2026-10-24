@@ -32,8 +32,8 @@ class FreezeVerbModule : public BaseEffectModule {
         LP = 2,
         CHORUS_AMT = 3,
         FLUTTER_SPD = 4,
-        DEGRADATION_AMT = 5,
-        DEGRADATION_SPD = 6,
+        DEGR_AMT = 5,
+        DEGR_SPD = 6,
         PARAM_COUNT
     };
 
@@ -49,7 +49,9 @@ class FreezeVerbModule : public BaseEffectModule {
     bool UsesRawFootswitch1() const override { return true; }
 
   private:
-    static constexpr int kBlockSize = 48; // must match guitar_pedal.cpp blockSize
+    // RNBO runs once per kBlockSize samples. Independent of the pedal's own
+    // block size; it sets this wrapper's added latency (48 = 1 ms).
+    static constexpr int kBlockSize = 48;
 
     int m_fsw1Index = -1;
     int m_fsw2Index = -1;
@@ -57,6 +59,11 @@ class FreezeVerbModule : public BaseEffectModule {
     int m_led2Index = -1;
 
     int m_paramIndex[PARAM_COUNT];
+
+    // Last value sent to RNBO per param / footswitch. Only changes are sent.
+    float m_lastSent[PARAM_COUNT];
+    float m_lastFsw1Sent = -1.0f;
+    float m_lastFsw2Sent = -1.0f;
 
     volatile float m_fsw1Value = 0.0f;
     volatile float m_fsw2Value = 0.0f;
@@ -73,6 +80,10 @@ class FreezeVerbModule : public BaseEffectModule {
     Impl *m_impl;
 
     void ProcessAudioBlock(int size);
+
+    // Value to send RNBO for param slot k. Bool (checkbox) params are stored
+    // as raw 0/1, so GetParameterAsFloat would return garbage for them.
+    float ParamValueForRnbo(int k) const;
 };
 
 } // namespace bkshepherd

@@ -5,6 +5,7 @@
 
 #include "UI/guitar_pedal_ui.h"
 #include "Util/audio_utilities.h"
+#include "Util/heap_guard.h"
 
 using namespace daisy;
 using namespace daisysp;
@@ -666,11 +667,57 @@ void HandleMidiMessage(MidiEvent m) {
     }
 }
 
+// Heap guard: shown when an allocation is refused. Halts on purpose --
+// running on would corrupt memory.
+static void ShowHeapFull(size_t requested) {
+    if (hardware.SupportsDisplay()) {
+        char buf[32];
+        hardware.display.Fill(false);
+        hardware.display.SetCursor(0, 0);
+        hardware.display.WriteString("HEAP FULL", Font_11x18, true);
+        hardware.display.SetCursor(0, 24);
+        sprintf(buf, "need %u B more", (unsigned)requested);
+        hardware.display.WriteString(buf, Font_7x10, true);
+        hardware.display.SetCursor(0, 38);
+        sprintf(buf, "used %u of %u KB", (unsigned)(HeapGuardUsedBytes() / 1024),
+                (unsigned)(HeapGuardCapacityBytes() / 1024));
+        hardware.display.WriteString(buf, Font_7x10, true);
+        hardware.display.SetCursor(0, 52);
+        hardware.display.WriteString("fewer fx/arrays", Font_7x10, true);
+        hardware.display.Update();
+    }
+    while (1) {
+    }
+}
+
+// Heap guard: shows heap use once at boot, for 1.5 s.
+static void ShowHeapReport() {
+    if (!hardware.SupportsDisplay()) {
+        return;
+    }
+    char buf[32];
+    const unsigned usedKB = (unsigned)(HeapGuardUsedBytes() / 1024);
+    const unsigned capKB = (unsigned)(HeapGuardCapacityBytes() / 1024);
+    const unsigned pct = (unsigned)(HeapGuardUsedBytes() * 100 / HeapGuardCapacityBytes());
+    hardware.display.Fill(false);
+    hardware.display.SetCursor(0, 0);
+    sprintf(buf, "heap %u%%", pct);
+    hardware.display.WriteString(buf, Font_11x18, true);
+    hardware.display.SetCursor(0, 24);
+    sprintf(buf, "%u of %u KB", usedKB, capKB);
+    hardware.display.WriteString(buf, Font_7x10, true);
+    hardware.display.Update();
+    System::Delay(1500);
+}
+
 int main(void) {
-    const size_t blockSize = 48;
+    const size_t blockSize = 192;
     const bool boost = true; // true enables cpu boost (480Mhz instead of 400Mhz)
 
     hardware.Init(blockSize, boost);
+
+    // Heap guard: show "HEAP FULL" (and halt) if an allocation is ever refused.
+    HeapGuardSetOnFull(ShowHeapFull);
 
     const float sample_rate = hardware.AudioSampleRate();
 
@@ -778,6 +825,9 @@ int main(void) {
     crossFaderLeft.SetPos(effectOn ? 1.0f : 0.0f);
     crossFaderRight.SetPos(effectOn ? 1.0f : 0.0f);
 
+    // Heap guard: show heap use once at boot (1.5 s).
+    ShowHeapReport();
+
     // start callback
     hardware.StartAdc();
     hardware.StartAudio(AudioCallback);
@@ -878,7 +928,23 @@ int main(void) {
         }
 
         // Set the latest cpu load to the effect
-        activeEffect->SetCPUUsage(cpuLoadMeter.GetAvgCpuLoad());
+        
+        //FROM HERE
+        //activeEffect->SetCPUUsage(cpuLoadMeter.GetMaxCpuLoad());  // latched all-time max
+        //activeEffect->SetCPUUsage(cpuLoadMeter.GetAvgCpuLoad()); uncomment for average
+
+        // Peak CPU per 1-second window: latch the max, show it, reset the meter.
+        static uint32_t lastCpuReset = 0;
+        static float shownCpuMax = 0.0f;
+        uint32_t cpuNow = System::GetNow();
+        if (cpuNow - lastCpuReset >= 1000) {
+            shownCpuMax = cpuLoadMeter.GetMaxCpuLoad();
+            cpuLoadMeter.Reset();
+            lastCpuReset = cpuNow;
+        }
+        activeEffect->SetCPUUsage(shownCpuMax);
+        //to HERE
+        //activeEffect->SetCPUUsage(cpuLoadMeter.GetAvgCpuLoad()); uncomment for average
 
         // Handle Display
         if (hardware.SupportsDisplay()) {

@@ -9,36 +9,36 @@
 
 // Include all effect modules
 //#include "Effect-Modules/autopan_module.h"
-#include "Effect-Modules/chopper_module.h"
-#include "Effect-Modules/chorus_module.h"
-#include "Effect-Modules/cloudseed_module.h" // Takes up significant SDRAM (about 30%)
+//#include "Effect-Modules/chopper_module.h"
+//#include "Effect-Modules/chorus_module.h"
+//#include "Effect-Modules/cloudseed_module.h" // Takes up significant SDRAM (about 30%)
 //#include "Effect-Modules/compressor_module.h"
 //#include "Effect-Modules/crusher_module.h"
-#include "Effect-Modules/delay_module.h"
+//#include "Effect-Modules/delay_module.h"
 //#include "Effect-Modules/distortion_module.h"
 //#include "Effect-Modules/drum_module.h"
 //#include "Effect-Modules/effect_chain.h" // Some caution required - See README and examples below for usage
-#include "Effect-Modules/flanger_module.h"
-#include "Effect-Modules/geq_module.h"
-#include "Effect-Modules/granulardelay_module.h"
-#include "Effect-Modules/harmonic_tremolo_module.h"
+//#include "Effect-Modules/flanger_module.h"
+//#include "Effect-Modules/geq_module.h"
+//#include "Effect-Modules/granulardelay_module.h"
+//#include "Effect-Modules/harmonic_tremolo_module.h"
 //#include "Effect-Modules/ir_module.h"
 //#include "Effect-Modules/looper_module.h"
 //#include "Effect-Modules/metro_module.h"
-#include "Effect-Modules/modulated_tremolo_module.h"
+//#include "Effect-Modules/modulated_tremolo_module.h"
 //#include "Effect-Modules/multi_delay_module.h"
 //#include "Effect-Modules/nam_a2_module.h"
 //#include "Effect-Modules/noise_gate_module.h"
 //#include "Effect-Modules/overdrive_module.h"
 //#include "Effect-Modules/peq_module.h"
-#include "Effect-Modules/phaser_module.h"
-#include "Effect-Modules/pitch_shifter_module.h"
-#include "Effect-Modules/polyoctave_module.h"
-#include "Effect-Modules/reverb_module.h"
-#include "Effect-Modules/scifi_module.h"
-#include "Effect-Modules/spectral_delay_module.h"
-#include "Effect-Modules/tape_delay_module.h"
-#include "Effect-Modules/tuner_module.h"
+//#include "Effect-Modules/phaser_module.h"
+//#include "Effect-Modules/pitch_shifter_module.h"
+//#include "Effect-Modules/polyoctave_module.h"
+//#include "Effect-Modules/reverb_module.h"
+//#include "Effect-Modules/scifi_module.h"
+//#include "Effect-Modules/spectral_delay_module.h"
+//#include "Effect-Modules/tape_delay_module.h"
+//#include "Effect-Modules/tuner_module.h"
 
 // Keyboard modules
 // #include "Effect-Modules/fm_keys_module.h"
@@ -51,44 +51,100 @@
 // Effect-Modules/Dattorro/README.md and the matching block in the Makefile
 // before uncommenting.
 // #include "Effect-Modules/dattorro_reverb_module.h"
+#ifdef FX_freezeverb
 #include "Effect-Modules/freezeverb_module.h"
+#endif
+#ifdef FX_sympath
+#include "Effect-Modules/sympath_module.h"
+#endif
+//#include "Effect-Modules/scrub_module.h"
+//#include "Effect-Modules/spectralscrub_module.h"
+#ifdef FX_graincloud
+#include "Effect-Modules/graincloud_module.h"
+#endif
+#ifdef FX_tension_relief
+#include "Effect-Modules/tension_relief_module.h"
+#endif
+#ifdef FX_tens_rel
+#include "Effect-Modules/tens_rel_module.h"
+#endif
+#ifdef FX_chord_shadow
+#include "Effect-Modules/chord_shadow_module.h"
+#endif
+#ifdef FX_chordshadow
+#include "Effect-Modules/chordshadow_module.h"
+#endif
+#ifdef FX_evolver
+#include "Effect-Modules/evolver_module.h"
+#endif
+//#include "Effect-Modules/centroid_res_module.h"
+//#include "Effect-Modules/tribonacci_module.h"
+//#include "Effect-Modules/phrase_shuffle_module.h"
 
 namespace bkshepherd {
 
 void load_effects(int &availableEffectsCount, BaseEffectModule **&availableEffects) {
     // clang-format off
     static BaseEffectModule* effectList[] = {
-        new ModulatedTremoloModule(),
+        //new ModulatedTremoloModule(),
         //new OverdriveModule(),
         //new AutoPanModule(),
-        new ChorusModule(),
-        new ChopperModule(),
-        new ReverbModule(), // single-instance only
+        //new ChorusModule(),
+        //new ChopperModule(),
+        //new ReverbModule(), // single-instance only
         //new MultiDelayModule(),  // single-instance-only
         //new MetroModule(),
-        new TunerModule(), // single-instance only
-        new PitchShifterModule(),  // single-instance-only
+        //new TunerModule(), // single-instance only
+        //new PitchShifterModule(),  // single-instance-only
         //new CompressorModule(),
         //new LooperModule(),  // single-instance-only
         //new GraphicEQModule(),
         //new ParametricEQModule(),
         //new NoiseGateModule(),
-        new CloudSeedModule(), // single-instance only
-        new DelayModule(), // single-instance only
-        new TapeDelayModule(),  // single-instance-only
+        //new CloudSeedModule(), // single-instance only
+        //new DelayModule(), // single-instance only
+        //new TapeDelayModule(),  // single-instance-only
         //new NamA2Module(),  // single-instance-only
-        new SciFiModule(),  // single-instance-only
-        new PolyOctaveModule(),
-        new SpectralDelayModule(),  // single-instance-only
+        //new SciFiModule(),  // single-instance-only
+        //new PolyOctaveModule(),
+        //new SpectralDelayModule(),  // single-instance-only
         //new DistortionModule(),
-        new GranularDelayModule(),  // single-instance-only
+        //new GranularDelayModule(),  // single-instance-only
         //new IrModule(),
         //new DrumModule(),  // This module can be used with MIDI keyboard as a drum machine
-        new PhaserModule(),
-        new FlangerModule(),
+        //new PhaserModule(),
+        //new FlangerModule(),
         //new CrusherModule(),
-        new HarmonicTremoloModule(),
+        //new HarmonicTremoloModule(),
+#ifdef FX_freezeverb
         new FreezeVerbModule(),
+#endif
+#ifdef FX_sympath
+        new SympathModule(),
+#endif
+        //new scrubModule(),
+        //new SpectralScrubModule(),
+#ifdef FX_graincloud
+        new graincloudModule(),
+#endif
+#ifdef FX_tension_relief
+        new tension_reliefModule(),
+#endif
+#ifdef FX_tens_rel
+        new tens_relModule(),
+#endif
+#ifdef FX_chord_shadow
+        new chord_shadowModule(),
+#endif
+#ifdef FX_chordshadow
+        new chordshadowModule(),
+#endif
+#ifdef FX_evolver
+        new evolverModule(),
+#endif
+        //new cent_resoModule(),
+        //new tribonacciModule(),
+        //new phrase_shufModule(),
 
         // The following require a MIDI keyboard
         // new MidiKeysModule(),
@@ -157,6 +213,7 @@ void load_effects(int &availableEffectsCount, BaseEffectModule **&availableEffec
         //     /* footswitchTogglesSlots */ {0} // but footswitch toggles tremolo on/off
         // ),
     };
+    static_assert(sizeof(effectList) > 0, "This pedal's effect list is empty: no effect in its pedals/<colour>.mk is wired into loaded_effects.h. Run make_effect.py for it.");
     // clang-format on
 
     availableEffectsCount = sizeof(effectList) / sizeof(effectList[0]);
