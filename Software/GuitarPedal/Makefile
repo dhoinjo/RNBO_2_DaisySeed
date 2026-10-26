@@ -109,6 +109,14 @@ ifneq ($(PEDAL),)
   endif
   include $(PEDAL_FILE)
   override BUILD_DIR := build_$(PEDAL)
+  # Tempo sync: every pedal gets its own id (tie-break when two pedals claim
+  # the tempo lead at the same moment). Unknown pedal names get 9.
+  PEDAL_ID_purple := 1
+  PEDAL_ID_yellow := 2
+  PEDAL_ID_green  := 3
+  PEDAL_ID_orange := 4
+  PEDAL_ID_blue   := 5
+  C_DEFS += -DPEDAL_ID=$(or $(PEDAL_ID_$(PEDAL)),9)
   # Fast RNBO pool in internal SRAM, per pedal (FAST_POOL_KB in the profile).
   FAST_POOL_KB ?= 0
   C_DEFS += -DRNBO_FAST_POOL_KB=$(FAST_POOL_KB)

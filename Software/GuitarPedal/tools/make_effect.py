@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-make_effect.py v12 — RNBO-on-kshep effect generator (pedal lists managed for you)
+make_effect.py v14 — RNBO-on-kshep effect generator (pedal lists managed for you)
 
 EVERYDAY USE — two commands:
 
@@ -44,6 +44,13 @@ kshep param: knob, MIDI and menu move through exactly N values from min to max
 (e.g. 1..16 @steps 16 -> 1,2,...,16), and the menu shows the real values.
 @steps 2 on a 0..1 param stays a checkbox. No @steps = continuous, as before.
 
+Tempo sync (v14), see Util/tempo_sync.h (needs tempo_sync v2):
+    param `bpm`        gets the knob/menu value or the shared tempo, whichever
+                       changed last (shared tempo follows drift-free).
+    param `tempo_out`  written BY the patch: a new value > 0 makes this pedal
+                       the tempo leader at that tempo (others follow);
+                       0 stops leading.
+
 Overrides (normally auto-derived from description.json meta):
     --name FreezeVerb --snake freezeverb
 
@@ -68,7 +75,7 @@ import filecmp
 # ===========================================================================
 # constants
 # ===========================================================================
-RESERVED = {"fsw1", "fsw2", "led1", "led2"}
+RESERVED = {"fsw1", "fsw2", "led1", "led2", "tempo_out"}
 MAX_KNOBS = 6
 MAX_MENU = 18   # 6 knobs + 18 menu = 24 assignable params (+4 reserved)
 
@@ -130,7 +137,7 @@ def classify(params):
 
     # reserved presence check
     present = {p["name"] for p in params}
-    for r in sorted(RESERVED):
+    for r in sorted(RESERVED - {"tempo_out"}):
         if r not in present:
             warnings.append(f"reserved param {r!r} not in export "
                             f"-> that hardware path will be inactive.")
@@ -274,6 +281,8 @@ class {module_class} : public BaseEffectModule {{
     int m_fsw2Index = -1;
     int m_led1Index = -1;
     int m_led2Index = -1;
+    int m_tempoOutIndex = -1;
+    float m_lastTempoOut = 0.0f;
 
     int m_paramIndex[PARAM_COUNT];
 
@@ -312,6 +321,8 @@ class {module_class} : public BaseEffectModule {{
 
 def gen_cpp(class_name, snake, module_class, non_reserved):
     name_rows = ",\n".join(f'    "{p["name"]}"' for p in non_reserved)
+
+    bpm_slot = next((k for k, p in enumerate(non_reserved) if p["name"] == "bpm"), -1)
 
     bin_arrays = []
     step_min_rows = []
@@ -395,6 +406,7 @@ def gen_cpp(class_name, snake, module_class, non_reserved):
 
 #include "{snake}_module.h"
 #include <string.h> // strcmp for param-name discovery
+#include "../Util/tempo_sync.h"
 
 // RNBO export, native filename ("<classname>.cpp.h"). Sits at
 // dependencies/RNBO/{snake}.cpp.h.
@@ -419,6 +431,9 @@ static const char *s_paramNames[{module_class}::PARAM_COUNT] = {{
 // Stepped params: value sent to RNBO = s_stepMin[k] + (bin - 1) * s_stepSize[k].
 static const float s_stepMin[{module_class}::PARAM_COUNT] = {{{step_min_block}}};
 static const float s_stepSize[{module_class}::PARAM_COUNT] = {{{step_size_block}}};
+
+// Slot of the `bpm` param (-1 = none): fed by tempo sync while synced.
+static const int kBpmSlot = {bpm_slot};
 
 // kshep parameter metadata, same slot order. Labels from RNBO names; defaults
 // from description.json initialValue; min/max from the RNBO range; MIDI CC per
@@ -465,7 +480,7 @@ void {module_class}::Init(float sample_rate) {{
     m_impl->rnbo.initialize();
     m_impl->rnbo.prepareToProcess(sample_rate, kBlockSize, true);
 
-    m_fsw1Index = m_fsw2Index = m_led1Index = m_led2Index = -1;
+    m_fsw1Index = m_fsw2Index = m_led1Index = m_led2Index = m_tempoOutIndex = -1;
     for (int i = 0; i < {module_class}::PARAM_COUNT; ++i) {{
         m_paramIndex[i] = -1;
     }}
@@ -484,6 +499,8 @@ void {module_class}::Init(float sample_rate) {{
             m_led1Index = (int)i;
         }} else if (strcmp(pname, "led2") == 0) {{
             m_led2Index = (int)i;
+        }} else if (strcmp(pname, "tempo_out") == 0) {{
+            m_tempoOutIndex = (int)i;
         }} else {{
             for (int k = 0; k < {module_class}::PARAM_COUNT; ++k) {{
                 if (strcmp(pname, s_paramNames[k]) == 0) {{
@@ -503,13 +520,25 @@ void {module_class}::Init(float sample_rate) {{
     }}
     m_lastFsw1Sent = -1.0f; // forces the first footswitch state to be sent
     m_lastFsw2Sent = -1.0f;
+
+    // tempo_out: only CHANGES claim the lead, so the patch's initial value
+    // doesn't make every pedal grab it at boot.
+    m_lastTempoOut = (m_tempoOutIndex >= 0)
+                         ? (float)m_impl->rnbo.getParameterValue(m_tempoOutIndex)
+                         : 0.0f;
 }}
 
 void {module_class}::ProcessAudioBlock(int size) {{
     // Send only what changed since the last block (each send runs RNBO's
     // event machinery, so skipping unchanged values saves CPU).
     for (int k = 0; k < {module_class}::PARAM_COUNT; ++k) {{
-        const float v = ParamValueForRnbo(k);
+        float v = ParamValueForRnbo(k);
+        if (k == kBpmSlot) {{
+            float synced;
+            if (TempoSyncBpmForPatch(v, &synced)) {{
+                v = synced;  // shared tempo (last one wins vs the knob)
+            }}
+        }}
         if (v != m_lastSent[k]) {{
             m_lastSent[k] = v;
             if (m_paramIndex[k] >= 0) {{
@@ -540,6 +569,13 @@ void {module_class}::ProcessAudioBlock(int size) {{
     }}
     if (m_led2Index >= 0) {{
         m_led2Value = (float)m_impl->rnbo.getParameterValue(m_led2Index);
+    }}
+    if (m_tempoOutIndex >= 0) {{
+        const float t = (float)m_impl->rnbo.getParameterValue(m_tempoOutIndex);
+        if (t != m_lastTempoOut) {{
+            m_lastTempoOut = t;
+            TempoSyncRequestLead(t);  // > 0: lead at this tempo, 0: stop leading
+        }}
     }}
 }}
 
@@ -1084,7 +1120,7 @@ def main():
 
     mode = "APPLY (writing)" if apply else "DRY RUN (no writes)"
     print("=" * 64)
-    print(f"  make_effect v12 — {mode}")
+    print(f"  make_effect v14 — {mode}")
     print("=" * 64)
     print(f"  effect        : {class_name}  ({module_class})")
     print(f"  file stem     : {snake}   (pedal profile name + define FX_{snake})")
@@ -1097,6 +1133,11 @@ def main():
     for p in menu:
         print(f"      menu    {cc_label(p)}  {p['name']}  (\"{clean_label(p['name'])}\")"
               + ("  [checkbox]" if p.get("isBool") else "") + stepped_tag(p))
+    has_bpm = any(p["name"] == "bpm" for p in non_reserved)
+    has_tout = any(p["name"] == "tempo_out" for p in data["parameters"])
+    if has_bpm or has_tout:
+        print(f"  tempo sync    : {'bpm (follows shared tempo)' if has_bpm else 'no bpm'}"
+              f"{', tempo_out (can lead)' if has_tout else ''}")
     print()
     print("  STAGE 2 — module files:")
     print(f"    {snake}_module.h    {state(h_changed)}")

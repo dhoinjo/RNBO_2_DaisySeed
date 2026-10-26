@@ -6,6 +6,7 @@
 #include "UI/guitar_pedal_ui.h"
 #include "Util/audio_utilities.h"
 #include "Util/heap_guard.h"
+#include "Util/tempo_sync.h"
 
 using namespace daisy;
 using namespace daisysp;
@@ -142,6 +143,9 @@ int crossFaderTransitionTimeInSamples;
 int samplesTilCrossFadingComplete;
 CpuLoadMeter cpuLoadMeter;
 
+// Tempo sync needs the sample rate in the audio callback.
+static float s_tempoSampleRate = 48000.0f;
+
 // Effect switch requested from the audio callback (interrupt context).
 // Switching effects rebuilds the UI menus with heap new/delete, which is not
 // safe from the interrupt (allocator reentrancy, and the main loop may be
@@ -153,6 +157,9 @@ void SetActiveEffect(int effectID);
 
 static void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size) {
     cpuLoadMeter.OnBlockStart();
+
+    // Tempo sync: advance the shared tempo for this block (cheap, once per block).
+    TempoSyncAudioBlock(size, s_tempoSampleRate);
 
     // Process Audio
     float inputLeft;
@@ -592,6 +599,15 @@ void HandleMidiMessage(MidiEvent m) {
     // Get a handle to the persitance storage settings
     Settings &settings = storage.GetSettings();
 
+    // Tempo sync messages (channel 16, CC 116/117/119) are handled here and
+    // never passed through, so they can't loop around the Midihub.
+    if (m.type == ControlChange) {
+        ControlChangeEvent cc = m.AsControlChange();
+        if (TempoSyncHandleCC(m.channel, cc.control_number, cc.value)) {
+            return;
+        }
+    }
+
     int channel = 0;
 
     // Make sure the settings midi channel is within the proper range
@@ -710,6 +726,17 @@ static void ShowHeapReport() {
     System::Delay(1500);
 }
 
+// Tempo sync: outgoing MIDI bytes (announcements + clock), main loop only.
+static void TempoSyncSendBytes(uint8_t *bytes, size_t size) {
+    hardware.midi.SendMessage(bytes, size);
+}
+
+// Tempo sync: realtime bytes (MIDI clock) straight from the MIDI receive
+// interrupt, so each tick is timed on arrival.
+static void TempoSyncOnRealtime(MidiEvent &m) {
+    TempoSyncOnRealtimeByte((uint8_t)(0xF8 + (int)m.srt_type));
+}
+
 int main(void) {
     const size_t blockSize = 192;
     const bool boost = true; // true enables cpu boost (480Mhz instead of 400Mhz)
@@ -719,7 +746,11 @@ int main(void) {
     // Heap guard: show "HEAP FULL" (and halt) if an allocation is ever refused.
     HeapGuardSetOnFull(ShowHeapFull);
 
+    // Tempo sync between pedals (see Util/tempo_sync.h).
+    TempoSyncInit(TempoSyncSendBytes);
+
     const float sample_rate = hardware.AudioSampleRate();
+    s_tempoSampleRate = sample_rate;
 
     // Setup CPU logging of the audio callback
     cpuLoadMeter.Init(sample_rate, blockSize);
@@ -791,7 +822,9 @@ int main(void) {
 
     // Set up midi if supported.
     if (hardware.SupportsMidi()) {
-        hardware.midi.StartReceive();
+        // StartReceiveRt: MIDI clock bytes go straight to tempo sync (timed on
+        // arrival); everything else is queued as before.
+        hardware.midi.StartReceiveRt(TempoSyncOnRealtime);
     }
 
     // Setup Relay Bypass State
@@ -972,6 +1005,9 @@ int main(void) {
 
         // Handle MIDI Events
         if (hardware.SupportsMidi() && settings.globalMidiEnabled) {
+            // Tempo sync: send clock/announcements when this pedal leads.
+            TempoSyncProcess();
+
             hardware.midi.Listen();
 
             while (hardware.midi.HasEvents()) {
